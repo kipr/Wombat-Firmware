@@ -1,0 +1,7 @@
+version: "3"
+
+services:
+  build-wombat-firmware:
+    build: .
+    volumes:
+      - .:/home/dev/Wombat-Firmware:rw
