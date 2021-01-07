@@ -26,22 +26,30 @@ Open Source build provided with lots of :coffee: by [HTL Wiener Neustadt](https:
     * STM32F4 linker script
 
 ## Run/Build with Docker
+
 > sudo service docker stop
+
 > sudo service docker start
+
 > sudo docker-compose up --build
 
 This will execute all the builds and output the binary file into the build folder.
 
 
 ## Run/Build directly
+
 (Requires PATH to be setup correctly gor gcc/G++)
 
-> build.sh
+> sudo build.sh
 
 
-## Author(s): 
+### Author(s): 
+ 
 Joshua Southerland (2015)
+
 Zachary Sasser (2019)
 
-# Contributors:
+
+#### Contributors:
+ 
 Konstantin Lampalzer (2020) - Added Docker Support
