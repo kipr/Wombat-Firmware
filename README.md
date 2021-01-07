@@ -38,7 +38,7 @@ This will execute all the builds and output the binary file into the build folde
 The build folder will be created during runtime.
 
 
-## Run/Build directly
+## Run/Build Directly
 
 (Requires PATH to be setup correctly for gcc/G++)
 
