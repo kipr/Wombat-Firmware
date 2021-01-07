@@ -8,7 +8,6 @@ This project provides firmware for the STM32F427VIT6 Microcontroller on the Womb
 
 It is currently under active development by KIPR.
 
-~~It has been built using Crossworks... an open source build is coming soon.~~
 Open Source build provided with lots of :coffee: by [HTL Wiener Neustadt](https://robo4you.at/)
 
 # Structure
@@ -26,17 +25,23 @@ Open Source build provided with lots of :coffee: by [HTL Wiener Neustadt](https:
 * linker
     * STM32F4 linker script
 
-# Build
-
-## Docker
-
-> docker-compose up --build
+## Run/Build with Docker
+> sudo service docker stop
+> sudo service docker start
+> sudo docker-compose up --build
 
 This will execute all the builds and output the binary file into the build folder.
 
-## Local build
+
+## Run/Build directly
+(Requires PATH to be setup correctly gor gcc/G++)
 
 > build.sh
 
 
-Author: Joshua Southerland (2015)
+## Author(s): 
+Joshua Southerland (2015)
+Zachary Sasser (2019)
+
+# Contributors:
+Konstantin Lampalzer (2020) - Added Docker Support
