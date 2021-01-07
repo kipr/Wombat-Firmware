@@ -35,10 +35,12 @@ Open Source build provided with lots of :coffee: by [HTL Wiener Neustadt](https:
 
 This will execute all the builds and output the binary file into the build folder.
 
+The build folder will be created during runtime.
+
 
 ## Run/Build directly
 
-(Requires PATH to be setup correctly gor gcc/G++)
+(Requires PATH to be setup correctly for gcc/G++)
 
 > sudo build.sh
 
