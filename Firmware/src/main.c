@@ -44,7 +44,8 @@ int main()
     //debug_printf("starting\n");
     int low_volt_alarmed = 0;
 
- 
+    setupIMU();
+    
     // Loop until button is pressed
     uint32_t count = 0;
     while (1)
