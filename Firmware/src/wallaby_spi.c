@@ -146,25 +146,24 @@ void initSPI4()
 }
 
 
-
+uint8_t SPI_write(SPI_TypeDef *const spi, uint8_t data)
+{
+    spi->DR = data; // write data
+	while( !(spi->SR & SPI_I2S_FLAG_TXE) ); // wait for transmit
+	while( !(spi->SR & SPI_I2S_FLAG_RXNE) ); // wait for receive
+	while( spi->SR & SPI_I2S_FLAG_BSY ); // wait unit SPI is done
+	return spi->DR; // return data
+}
 
 uint8_t SPI3_write(uint8_t data)
 {
-	SPI3->DR = data; // write data
-	while( !(SPI3->SR & SPI_I2S_FLAG_TXE) ); // wait for transmit
-	while( !(SPI3->SR & SPI_I2S_FLAG_RXNE) ); // wait for receive
-	while( SPI3->SR & SPI_I2S_FLAG_BSY ); // wait unit SPI is done
-	return SPI3->DR; // return data
+	SPI_write(SPI3, data);
 }
 
 
 uint8_t SPI4_write(uint8_t data)
 {
-	SPI4->DR = data; // write data
-	while( !(SPI4->SR & SPI_I2S_FLAG_TXE) ); // wait for transmit
-	while( !(SPI4->SR & SPI_I2S_FLAG_RXNE) ); // wait for receive
-	while( SPI4->SR & SPI_I2S_FLAG_BSY ); // wait unit SPI is done
-	return SPI4->DR; // return data
+	SPI_write(SPI4, data);
 }
 
 

@@ -44,7 +44,7 @@ int main()
     //debug_printf("starting\n");
     int low_volt_alarmed = 0;
 
-    setupIMU();
+    wallaby_imu_init();
     
     // Loop until button is pressed
     uint32_t count = 0;
@@ -75,7 +75,7 @@ int main()
             //readAccel();
             //readMag();
             //readGyro();   
-            if(count%1000==0)readIMU();
+            if(count%1000==0) wallaby_imu_update();
 
             if (batt < 636) // about 5.75 volts
             {

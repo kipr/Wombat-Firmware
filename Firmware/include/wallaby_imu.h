@@ -1,12 +1,9 @@
+#ifndef WALLABY_IMU_H_
+#define WALLABY_IMU_H_
+
 #include "stm32f4xx.h"
 
-void setupIMU();
-void readIMU();
+void wallaby_imu_init();
+void wallaby_imu_update();
 
-void setupAccelMag();
-void setupGyro();
-
-void readAccel();
-void readMag();
-void readGyro();
-
+#endif
