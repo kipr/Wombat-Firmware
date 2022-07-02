@@ -7,6 +7,7 @@ void initSPI3();
 void initSPI4();
 
 
+uint8_t SPI_write(SPI_TypeDef *const spi, uint8_t data);
 uint8_t SPI3_write(uint8_t data);
 uint8_t SPI4_write(uint8_t data);
 

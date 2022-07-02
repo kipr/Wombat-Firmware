@@ -7,6 +7,8 @@
 #include "mpu9250.h"
 #include "wallaby.h"
 
+#include <stdlib.h>
+
 const uint8_t MPU9250_SELF_TEST_X_GYRO = 0x00;
 const uint8_t MPU9250_SELF_TEST_Y_GYRO = 0x01;
 const uint8_t MPU9250_SELF_TEST_Z_GYRO = 0x02;
@@ -113,7 +115,7 @@ uint8_t mpu9250_check_who_am_i(mpu9250 *const device)
   return mpu9250_read(device, MPU9250_WHO_AM_I) == 0x71;
 }
 
-mpu9250 *mpu9250_init(SPI_TypeDef *spi, GPIO_TypeDef *cs0, uint16_t cs0_pin)
+mpu9250 *mpu9250_create(SPI_TypeDef *spi, GPIO_TypeDef *cs0, uint16_t cs0_pin)
 {
   mpu9250 *device = malloc(sizeof(mpu9250));
   if (!device) return 0;
@@ -211,16 +213,6 @@ uint8_t mpu9250_pwr_mgmt_1_get(mpu9250 *const device, mpu9250_pwr_mgmt_1 *const 
 }
 
 // PWR_MGMT_2
-
-typedef struct
-{
-  uint8_t disable_xa : 1;
-  uint8_t disable_ya : 1;
-  uint8_t disable_za : 1;
-  uint8_t disable_xg : 1;
-  uint8_t disable_yg : 1;
-  uint8_t disable_zg : 1;
-} mpu9250_pwr_mgmt_2;
 
 uint8_t mpu9250_pwr_mgmt_2_pack(const mpu9250_pwr_mgmt_2 *const pwr_mgmt_2)
 {
@@ -383,20 +375,7 @@ uint8_t mpu9250_user_ctrl_get(mpu9250 *const device, mpu9250_user_ctrl *const us
   return mpu9250_user_ctrl_unpack(mpu9250_read(device, MPU9250_USER_CTRL), user_ctrl);
 }
 
-// I2c_MST_CTRL
-
-typedef struct
-{
-  uint8_t mult_mst_en : 1;
-
-  uint8_t wait_for_es : 1;
-
-  uint8_t slv_3_fifo_en : 1;
-
-  uint8_t i2c_mst_p_nsr : 1;
-
-  uint8_t i2c_mst_clk : 3;
-} mpu9250_i2c_mst_ctrl;
+// I2C_MST_CTRL
 
 uint8_t mpu9250_i2c_mst_ctrl_pack(const mpu9250_i2c_mst_ctrl *const i2c_mst_ctrl)
 {
@@ -506,14 +485,6 @@ uint8_t mpu9250_i2c_slvn_do_get(mpu9250 *const device, const uint8_t n)
   return mpu9250_read(device, I2C_SLVN_DO[n]);
 }
 
-typedef struct
-{
-  uint8_t i2c_slv_en : 1;
-  uint8_t slv_done_int_en : 1;
-  uint8_t i2c_slv_reg_dis : 1;
-  uint8_t i2c_mst_dly : 4;
-} mpu9250_i2c_ctrl;
-
 uint8_t mpu9250_i2c_ctrl_pack(const mpu9250_i2c_ctrl *const i2c_ctrl)
 {
   return (
@@ -553,6 +524,18 @@ uint8_t mpu9250_i2c_slvn_ctrl_get(mpu9250 *const device, const uint8_t n, mpu925
   return mpu9250_i2c_ctrl_unpack(mpu9250_read(device, I2C_SLVN_CTRL[n]), i2c_ctrl);
 }
 
+// SMPLRT_DIV
+
+uint8_t mpu9250_smplrt_div_set(mpu9250 *const device, const uint8_t smplrt_div)
+{
+  return mpu9250_write(device, MPU9250_SMPLRT_DIV, smplrt_div);
+}
+
+uint8_t mpu9250_smplrt_div_get(mpu9250 *const device)
+{
+  return mpu9250_read(device, MPU9250_SMPLRT_DIV);
+}
+
 // Accelerometer
 
 uint8_t mpu9250_accel_sample_read(mpu9250 *const device, mpu9250_sample *const accel_sample)
@@ -572,7 +555,7 @@ uint8_t mpu9250_accel_sample_read(mpu9250 *const device, mpu9250_sample *const a
 void mpu9250_accel_sample_write_regs(
   mpu9250 *const device,
   const mpu9250_sample *const accel_sample,
-  uint8_t *const regs
+  volatile uint8_t *const regs
 )
 {
   regs[REG_RW_ACCEL_X_H] = (accel_sample->x & 0xFF00) >> 8;
@@ -604,7 +587,7 @@ uint8_t mpu9250_gyro_sample_read(mpu9250 *const device, mpu9250_sample *const gy
 void mpu9250_gyro_sample_write_regs(
   mpu9250 *const device,
   const mpu9250_sample *const gyro_sample,
-  uint8_t *const regs
+  volatile uint8_t *const regs
 )
 {
   regs[REG_RW_GYRO_X_H] = (gyro_sample->x & 0xFF00) >> 8;
@@ -621,9 +604,12 @@ void mpu9250_gyro_sample_write_regs(
 
 uint8_t mpu9250_magneto_sample_read(mpu9250 *const device, mpu9250_sample *const magneto_sample)
 {
-  mpu9250_i2c_slvn_addr_set(device, 0, 0x0C | 0x80);
+  mpu9250_i2c_slvn_addr_set(device, 0, &(mpu9250_i2c_addr) {
+    .i2c_slv_rnw = 1,
+    .i2c_id = 0x0C,
+  });
   mpu9250_i2c_slvn_reg_set(device, 0, 0x03);
-  mpu9250_i2c_ctrl_set(device, 0, &(mpu9250_i2c_ctrl) {
+  mpu9250_i2c_slvn_ctrl_set(device, 0, &(mpu9250_i2c_ctrl) {
     .i2c_slv_en = 1,
     .slv_done_int_en = 0,
     .i2c_slv_reg_dis = 0,
@@ -649,15 +635,15 @@ uint8_t mpu9250_magneto_sample_read(mpu9250 *const device, mpu9250_sample *const
 void mpu9250_magneto_sample_write_regs(
   mpu9250 *const device,
   const mpu9250_sample *const magneto_sample,
-  uint8_t *const regs
+  volatile uint8_t *const regs
 )
 {
-  regs[REG_RW_MAG_X_H] = (magento_sample->x & 0xFF00) >> 8;
-  regs[REG_RW_MAG_X_L] = (magento_sample->x & 0x00FF);
-  regs[REG_RW_MAG_Y_H] = (magento_sample->y & 0xFF00) >> 8;
-  regs[REG_RW_MAG_Y_L] = (magento_sample->y & 0x00FF);
-  regs[REG_RW_MAG_Z_H] = (magento_sample->z & 0xFF00) >> 8;
-  regs[REG_RW_MAG_Z_L] = (magento_sample->z & 0x00FF);
+  regs[REG_RW_MAG_X_H] = (magneto_sample->x & 0xFF00) >> 8;
+  regs[REG_RW_MAG_X_L] = (magneto_sample->x & 0x00FF);
+  regs[REG_RW_MAG_Y_H] = (magneto_sample->y & 0xFF00) >> 8;
+  regs[REG_RW_MAG_Y_L] = (magneto_sample->y & 0x00FF);
+  regs[REG_RW_MAG_Z_H] = (magneto_sample->z & 0xFF00) >> 8;
+  regs[REG_RW_MAG_Z_L] = (magneto_sample->z & 0x00FF);
 }
 
 #endif

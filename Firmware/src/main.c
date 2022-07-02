@@ -18,8 +18,6 @@
 
 #include "wallaby.h"
 
- 
-
 int main()
 {
     int32_t bemf_vals[4] = {0,0,0,0};
@@ -66,16 +64,15 @@ int main()
                 MOT3_DIR1_PORT->BSRRH |= MOT3_DIR1; 
                 MOT3_DIR2_PORT->BSRRH |= MOT3_DIR2;
             }
+
             // let the motor coast
             // delay_us(700);
             // now I squeeze in most sensor updates instead of just sleeping
             uint32_t before = usCount;
             update_dig_pins();
             int16_t batt = adc_update();
-            //readAccel();
-            //readMag();
-            //readGyro();   
-            if(count%1000==0) wallaby_imu_update();
+
+            if (count % 5 == 0) wallaby_imu_update();
 
             if (batt < 636) // about 5.75 volts
             {

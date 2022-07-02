@@ -118,7 +118,7 @@ typedef struct
   uint16_t cs0_pin;
 } mpu9250;
 
-mpu9250 *mpu9250_create(SPI_TypeDef *spi, uint16_t port, GPIO_TypeDef *cs0, uint16_t cs0_pin);
+mpu9250 *mpu9250_create(SPI_TypeDef *spi, GPIO_TypeDef *cs0, uint16_t cs0_pin);
 void mpu9250_destroy(mpu9250 *const device);
 
 uint8_t mpu9250_write(mpu9250 *const device, uint8_t address, uint8_t val);
@@ -393,6 +393,11 @@ uint8_t mpu9250_i2c_ctrl_unpack(const uint8_t val, mpu9250_i2c_ctrl *const i2c_c
 uint8_t mpu9250_i2c_slvn_ctrl_set(mpu9250 *const device, const uint8_t n, const mpu9250_i2c_ctrl *const i2c_ctrl);
 uint8_t mpu9250_i2c_slvn_ctrl_get(mpu9250 *const device, const uint8_t n, mpu9250_i2c_ctrl *const i2c_ctrl);
 
+// SMPLRT_DIV
+
+uint8_t mpu9250_smplrt_div_set(mpu9250 *const device, const uint8_t smplrt_div);
+uint8_t mpu9250_smplrt_div_get(mpu9250 *const device);
+
 // Sample
 
 typedef struct
@@ -407,7 +412,7 @@ typedef struct
 uint8_t mpu9250_accel_sample_read(mpu9250 *const device, mpu9250_sample *const accel_sample);
 
 #ifdef MPU9250_WALLABY
-void mpu9250_accel_sample_write_regs(mpu9250 *const device, const mpu9250_sample *const accel_sample, uint8_t *const regs);
+void mpu9250_accel_sample_write_regs(mpu9250 *const device, const mpu9250_sample *const accel_sample, volatile uint8_t *const regs);
 #endif
 
 // Gyro
@@ -415,7 +420,7 @@ void mpu9250_accel_sample_write_regs(mpu9250 *const device, const mpu9250_sample
 uint8_t mpu9250_gyro_sample_read(mpu9250 *const device, mpu9250_sample *const gyro_sample);
 
 #ifdef MPU9250_WALLABY
-void mpu9250_gyro_sample_write_regs(mpu9250 *const device, const mpu9250_sample *const gyro_sample, uint8_t *const regs);
+void mpu9250_gyro_sample_write_regs(mpu9250 *const device, const mpu9250_sample *const gyro_sample, volatile uint8_t *const regs);
 #endif
 
 // Magnetometer
@@ -423,7 +428,7 @@ void mpu9250_gyro_sample_write_regs(mpu9250 *const device, const mpu9250_sample 
 uint8_t mpu9250_magneto_sample_read(mpu9250 *const device, mpu9250_sample *const magneto_sample);
 
 #ifdef MPU9250_WALLABY
-void mpu9250_magneto_sample_write_regs(mpu9250 *const device, const mpu9250_sample *const magneto_sample, uint8_t *const regs);
+void mpu9250_magneto_sample_write_regs(mpu9250 *const device, const mpu9250_sample *const magneto_sample, volatile uint8_t *const regs);
 #endif
 
 #endif

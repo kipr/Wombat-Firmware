@@ -1,7 +1,6 @@
 #include "wallaby_imu.h"
 #include "wallaby.h"
 
-#define MPU9250_WALLABY
 #include "mpu9250.h"
 #include "stm32f4xx.h"
 
@@ -37,6 +36,30 @@ void wallaby_imu_init()
     return;
   }
 
+  // Reset device
+  mpu9250_pwr_mgmt_1_set(mpu, &(mpu9250_pwr_mgmt_1) {
+    .h_reset = 1,
+    .sleep = 0,
+    .cycle = 0,
+    .gyro_standby = 0,
+    .pd_ptat = 0,
+    .clksel = 0,
+  });
+  
+  delay_us(100 * 1000);
+
+  // Wake up
+  mpu9250_pwr_mgmt_1_set(mpu, &(mpu9250_pwr_mgmt_1) {
+    .h_reset = 0,
+    .sleep = 1,
+    .cycle = 0,
+    .gyro_standby = 0,
+    .pd_ptat = 0,
+    .clksel = 0,
+  });
+  delay_us(100 * 1000);
+
+
   // Configure clock
   mpu9250_pwr_mgmt_1_set(mpu, &(mpu9250_pwr_mgmt_1) {
     .h_reset = 0,
@@ -46,6 +69,7 @@ void wallaby_imu_init()
     .pd_ptat = 0,
     .clksel = 1,
   });
+  delay_us(100 * 1000);
 
   // Enable Accelerometer and Gyroscope
   mpu9250_pwr_mgmt_2_set(mpu, &(mpu9250_pwr_mgmt_2) {
@@ -57,11 +81,17 @@ void wallaby_imu_init()
     .disable_zg = 0,
   });
 
+  
+  // Set config
   mpu9250_config_set(mpu, &(mpu9250_config) {
     .fifo_mode = 0,
     .ext_sync_set = 0,
-    .dlpf_cfg = 0,
+    // 41 Hz
+    .dlpf_cfg = 3,
   });
+
+  // Set sample rate
+  mpu9250_smplrt_div_set(mpu, 4);
 
   mpu9250_gyro_config_set(mpu, &(mpu9250_gyro_config) {
     .xgyro_cten = 0,
@@ -69,7 +99,7 @@ void wallaby_imu_init()
     .zgyro_cten = 0,
     // +2000 dps
     .gyro_fs_sel = 0x3,
-    .fchoice_b = 0,
+    .fchoice_b = 0x3,
   });
 
   mpu9250_accel_config_set(mpu, &(mpu9250_accel_config) {
@@ -192,8 +222,10 @@ void wallaby_imu_init()
   SPI3_CS0_PORT->BSRRL |= SPI3_CS0; // done with chip
 }
 
+uint32_t last_us_count = 0;
 void wallaby_imu_update()
 {
+  uint32_t start = usCount;
   mpu9250_sample accel_sample;
   mpu9250_accel_sample_read(mpu, &accel_sample);
   mpu9250_accel_sample_write_regs(mpu, &accel_sample, aTxBuffer);
@@ -204,6 +236,13 @@ void wallaby_imu_update()
 
   mpu9250_sample magneto_sample;
   mpu9250_magneto_sample_read(mpu, &magneto_sample);
+  uint32_t end = usCount;
+
+  uint32_t delta = usCount - last_us_count;
+  magneto_sample.x = delta / 1000;
+  magneto_sample.y = delta > INT16_MAX ? INT16_MAX : INT16_MIN;
+  magneto_sample.z = (end - start);
   mpu9250_magneto_sample_write_regs(mpu, &magneto_sample, aTxBuffer);
+  last_us_count = usCount;
 }
 
