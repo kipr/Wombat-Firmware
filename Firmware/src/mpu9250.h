@@ -225,6 +225,16 @@ typedef struct
   uint8_t dlpf_cfg : 3;
 } mpu9250_config;
 
+extern const uint8_t MPU9250_CONFIG_DLPF_CFG_250_HZ;
+extern const uint8_t MPU9250_CONFIG_DLPF_CFG_184_HZ;
+extern const uint8_t MPU9250_CONFIG_DLPF_CFG_92_HZ;
+extern const uint8_t MPU9250_CONFIG_DLPF_CFG_41_HZ;
+extern const uint8_t MPU9250_CONFIG_DLPF_CFG_20_HZ;
+extern const uint8_t MPU9250_CONFIG_DLPF_CFG_10_HZ;
+extern const uint8_t MPU9250_CONFIG_DLPF_CFG_5_HZ;
+extern const uint8_t MPU9250_CONFIG_DLPF_CFG_3600_HZ;
+
+
 uint8_t mpu9250_config_pack(const mpu9250_config *const config);
 uint8_t mpu9250_config_unpack(const uint8_t val, mpu9250_config *const config);
 uint8_t mpu9250_config_set(mpu9250 *const device, const mpu9250_config *const config);
@@ -254,6 +264,11 @@ typedef struct
   uint8_t fchoice_b : 1;
 } mpu9250_gyro_config;
 
+extern const uint8_t MPU9250_GYRO_CONFIG_GYRO_FS_SEL_250_DPS;
+extern const uint8_t MPU9250_GYRO_CONFIG_GYRO_FS_SEL_500_DPS;
+extern const uint8_t MPU9250_GYRO_CONFIG_GYRO_FS_SEL_1000_DPS;
+extern const uint8_t MPU9250_GYRO_CONFIG_GYRO_FS_SEL_2000_DPS;
+
 uint8_t mpu9250_gyro_config_pack(const mpu9250_gyro_config *const gyro_config);
 uint8_t mpu9250_gyro_config_unpack(const uint8_t val, mpu9250_gyro_config *const gyro_config);
 uint8_t mpu9250_gyro_config_set(mpu9250 *const device, const mpu9250_gyro_config *const gyro_config);
@@ -279,6 +294,11 @@ typedef struct
   /// 11 = +16g
   uint8_t accel_fs_sel : 2;
 } mpu9250_accel_config;
+
+extern const uint8_t MPU9250_ACCEL_CONFIG_ACCEL_FS_SEL_2_G;
+extern const uint8_t MPU9250_ACCEL_CONFIG_ACCEL_FS_SEL_4_G;
+extern const uint8_t MPU9250_ACCEL_CONFIG_ACCEL_FS_SEL_8_G;
+extern const uint8_t MPU9250_ACCEL_CONFIG_ACCEL_FS_SEL_16_G;
 
 uint8_t mpu9250_accel_config_pack(const mpu9250_accel_config *const accel_config);
 uint8_t mpu9250_accel_config_unpack(const uint8_t val, mpu9250_accel_config *const accel_config);
@@ -341,7 +361,7 @@ typedef struct
 
   uint8_t i2c_mst_p_nsr : 1;
 
-  uint8_t i2c_mst_clk : 3;
+  uint8_t i2c_mst_clk : 4;
 } mpu9250_i2c_mst_ctrl;
 
 uint8_t mpu9250_i2c_mst_ctrl_pack(const mpu9250_i2c_mst_ctrl *const i2c_mst_ctrl);
@@ -395,6 +415,14 @@ uint8_t mpu9250_i2c_slvn_ctrl_get(mpu9250 *const device, const uint8_t n, mpu925
 
 // SMPLRT_DIV
 
+extern const uint8_t MPU9250_SMPLRT_DIV_1000_HZ;
+extern const uint8_t MPU9250_SMPLRT_DIV_500_HZ;
+extern const uint8_t MPU9250_SMPLRT_DIV_250_HZ;
+extern const uint8_t MPU9250_SMPLRT_DIV_200_HZ;
+extern const uint8_t MPU9250_SMPLRT_DIV_167_HZ;
+extern const uint8_t MPU9250_SMPLRT_DIV_143_HZ;
+extern const uint8_t MPU9250_SMPLRT_DIV_125_HZ;
+
 uint8_t mpu9250_smplrt_div_set(mpu9250 *const device, const uint8_t smplrt_div);
 uint8_t mpu9250_smplrt_div_get(mpu9250 *const device);
 
@@ -406,6 +434,8 @@ typedef struct
   int16_t y;
   int16_t z;
 } mpu9250_sample;
+
+void mpu9250_sample_low_pass_filter(mpu9250_sample *const acc, const mpu9250_sample *const sample, const float alpha);
 
 // Accelerometer
 
@@ -430,5 +460,57 @@ uint8_t mpu9250_magneto_sample_read(mpu9250 *const device, mpu9250_sample *const
 #ifdef MPU9250_WALLABY
 void mpu9250_magneto_sample_write_regs(mpu9250 *const device, const mpu9250_sample *const magneto_sample, volatile uint8_t *const regs);
 #endif
+
+// FIFO_EN
+
+typedef struct
+{
+  uint8_t temp_fifo_en : 1;
+  uint8_t gyro_xout : 1;
+  uint8_t gyro_yout : 1;
+  uint8_t gyro_zout : 1;
+  uint8_t accel : 1;
+  uint8_t slv2 : 1;
+  uint8_t slv1 : 1;
+  uint8_t slv0 : 1;
+} mpu9250_fifo_en;
+
+uint8_t mpu9250_fifo_en_pack(const mpu9250_fifo_en *const fifo_en);
+uint8_t mpu9250_fifo_en_unpack(const uint8_t val, mpu9250_fifo_en *const fifo_en);
+uint8_t mpu9250_fifo_en_set(mpu9250 *const device, const mpu9250_fifo_en *const fifo_en);
+uint8_t mpu9250_fifo_en_get(mpu9250 *const device, mpu9250_fifo_en *const fifo_en);
+
+// FIFO_COUNT
+
+uint16_t mpu9250_fifo_count_get(mpu9250 *const device);
+
+// FIFO_R_W
+
+uint8_t mpu9250_fifo_r_w_set(mpu9250 *const device, const uint8_t val);
+uint8_t mpu9250_fifo_r_w_get(mpu9250 *const device);
+
+// FIFO_READ
+
+typedef struct
+{
+  mpu9250_sample *accel_sample;
+  mpu9250_sample *gyro_sample;
+  mpu9250_sample *magneto_sample;
+} mpu9250_fifo_sample;
+
+uint8_t mpu9250_fifo_sample_count(mpu9250 *const device, const mpu9250_fifo_en *const fifo_en);
+uint8_t mpu9250_fifo_sample_read(mpu9250 *const device, const mpu9250_fifo_en *const fifo_en, mpu9250_fifo_sample *const fifo_sample);
+
+// Gyro Bias
+
+uint8_t mpu9250_xg_offset_set(mpu9250 *const device, const int16_t xg_offset);
+int16_t mpu9250_xg_offset_get(mpu9250 *const device);
+
+uint8_t mpu9250_yg_offset_set(mpu9250 *const device, const int16_t yg_offset);
+int16_t mpu9250_yg_offset_get(mpu9250 *const device);
+
+uint8_t mpu9250_zg_offset_set(mpu9250 *const device, const int16_t zg_offset);
+int16_t mpu9250_zg_offset_get(mpu9250 *const device);
+
 
 #endif

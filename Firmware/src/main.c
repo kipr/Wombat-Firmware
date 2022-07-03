@@ -42,8 +42,6 @@ int main()
     //debug_printf("starting\n");
     int low_volt_alarmed = 0;
 
-    wallaby_imu_init();
-    
     // Loop until button is pressed
     uint32_t count = 0;
     while (1)
@@ -72,7 +70,7 @@ int main()
             update_dig_pins();
             int16_t batt = adc_update();
 
-            if (count % 5 == 0) wallaby_imu_update();
+            wallaby_imu_update();
 
             if (batt < 636) // about 5.75 volts
             {

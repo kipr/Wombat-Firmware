@@ -249,6 +249,15 @@ uint8_t mpu9250_pwr_mgmt_2_get(mpu9250 *const device, mpu9250_pwr_mgmt_2 *const 
 
 // CONFIG
 
+const uint8_t MPU9250_CONFIG_DLPF_CFG_250_HZ = 0;
+const uint8_t MPU9250_CONFIG_DLPF_CFG_184_HZ = 1;
+const uint8_t MPU9250_CONFIG_DLPF_CFG_92_HZ = 2;
+const uint8_t MPU9250_CONFIG_DLPF_CFG_41_HZ = 3;
+const uint8_t MPU9250_CONFIG_DLPF_CFG_20_HZ = 4;
+const uint8_t MPU9250_CONFIG_DLPF_CFG_10_HZ = 5;
+const uint8_t MPU9250_CONFIG_DLPF_CFG_5_HZ = 6;
+const uint8_t MPU9250_CONFIG_DLPF_CFG_3600_HZ = 7;
+
 uint8_t mpu9250_config_pack(const mpu9250_config *const config)
 {
   return (
@@ -277,6 +286,11 @@ uint8_t mpu9250_config_get(mpu9250 *const device, mpu9250_config *const config)
 }
 
 // GYRO_CONFIG
+
+const uint8_t MPU9250_GYRO_CONFIG_GYRO_FS_SEL_250_DPS = 0;
+const uint8_t MPU9250_GYRO_CONFIG_GYRO_FS_SEL_500_DPS = 1;
+const uint8_t MPU9250_GYRO_CONFIG_GYRO_FS_SEL_1000_DPS = 2;
+const uint8_t MPU9250_GYRO_CONFIG_GYRO_FS_SEL_2000_DPS = 3;
 
 uint8_t mpu9250_gyro_config_pack(const mpu9250_gyro_config *const gyro_config)
 {
@@ -310,6 +324,11 @@ uint8_t mpu9250_gyro_config_get(mpu9250 *const device, mpu9250_gyro_config *cons
 }
 
 // ACCEL_CONFIG
+
+const uint8_t MPU9250_ACCEL_CONFIG_ACCEL_FS_SEL_2_G = 0;
+const uint8_t MPU9250_ACCEL_CONFIG_ACCEL_FS_SEL_4_G = 1;
+const uint8_t MPU9250_ACCEL_CONFIG_ACCEL_FS_SEL_8_G = 2;
+const uint8_t MPU9250_ACCEL_CONFIG_ACCEL_FS_SEL_16_G = 3;
 
 uint8_t mpu9250_accel_config_pack(const mpu9250_accel_config *const accel_config)
 {
@@ -394,7 +413,7 @@ uint8_t mpu9250_i2c_mst_ctrl_unpack(const uint8_t val, mpu9250_i2c_mst_ctrl *con
   i2c_mst_ctrl->wait_for_es = (val >> 6) & 0x01;
   i2c_mst_ctrl->slv_3_fifo_en = (val >> 5) & 0x01;
   i2c_mst_ctrl->i2c_mst_p_nsr = (val >> 4) & 0x01;
-  i2c_mst_ctrl->i2c_mst_clk = (val >> 0) & 0x07;
+  i2c_mst_ctrl->i2c_mst_clk = (val >> 0) & 0x0F;
   return val;
 }
 
@@ -526,6 +545,14 @@ uint8_t mpu9250_i2c_slvn_ctrl_get(mpu9250 *const device, const uint8_t n, mpu925
 
 // SMPLRT_DIV
 
+const uint8_t MPU9250_SMPLRT_DIV_1000_HZ = 0;
+const uint8_t MPU9250_SMPLRT_DIV_500_HZ = 1;
+const uint8_t MPU9250_SMPLRT_DIV_250_HZ = 2;
+const uint8_t MPU9250_SMPLRT_DIV_200_HZ = 3;
+const uint8_t MPU9250_SMPLRT_DIV_167_HZ = 4;
+const uint8_t MPU9250_SMPLRT_DIV_143_HZ = 5;
+const uint8_t MPU9250_SMPLRT_DIV_125_HZ = 6;
+
 uint8_t mpu9250_smplrt_div_set(mpu9250 *const device, const uint8_t smplrt_div)
 {
   return mpu9250_write(device, MPU9250_SMPLRT_DIV, smplrt_div);
@@ -534,6 +561,19 @@ uint8_t mpu9250_smplrt_div_set(mpu9250 *const device, const uint8_t smplrt_div)
 uint8_t mpu9250_smplrt_div_get(mpu9250 *const device)
 {
   return mpu9250_read(device, MPU9250_SMPLRT_DIV);
+}
+
+// sample
+
+void mpu9250_sample_low_pass_filter(
+  mpu9250_sample *const acc,
+  const mpu9250_sample *const sample,
+  const float alpha
+)
+{
+  acc->x = alpha * acc->x + (1.0f - alpha) * sample->x;
+  acc->y = alpha * acc->y + (1.0f - alpha) * sample->y;
+  acc->z = alpha * acc->z + (1.0f - alpha) * sample->z;
 }
 
 // Accelerometer
@@ -647,3 +687,178 @@ void mpu9250_magneto_sample_write_regs(
 }
 
 #endif
+
+// FIFO_EN
+
+// FIFO_EN
+
+uint8_t mpu9250_fifo_en_pack(const mpu9250_fifo_en *const fifo_en)
+{
+  return (
+      (fifo_en->temp_fifo_en << 7) |
+      (fifo_en->gyro_xout << 6) |
+      (fifo_en->gyro_yout << 5) |
+      (fifo_en->gyro_zout << 4) |
+      (fifo_en->accel << 3) |
+      (fifo_en->slv2 << 2) |
+      (fifo_en->slv1 << 1) |
+      (fifo_en->slv0 << 0)
+  );
+}
+
+uint8_t mpu9250_fifo_en_unpack(const uint8_t val, mpu9250_fifo_en *const fifo_en)
+{
+  fifo_en->temp_fifo_en = (val >> 7) & 1;
+  fifo_en->gyro_xout = (val >> 6) & 1;
+  fifo_en->gyro_yout = (val >> 5) & 1;
+  fifo_en->gyro_zout = (val >> 4) & 1;
+  fifo_en->accel = (val >> 3) & 1;
+  fifo_en->slv2 = (val >> 2) & 1;
+  fifo_en->slv1 = (val >> 1) & 1;
+  fifo_en->slv0 = (val >> 0) & 1;
+  return 1;
+}
+
+uint8_t mpu9250_fifo_en_set(mpu9250 *const device, const mpu9250_fifo_en *const fifo_en)
+{
+  return mpu9250_write(device, MPU9250_FIFO_EN, mpu9250_fifo_en_pack(fifo_en));
+}
+
+uint8_t mpu9250_fifo_en_get(mpu9250 *const device, mpu9250_fifo_en *const fifo_en)
+{
+  return mpu9250_fifo_en_unpack(mpu9250_read(device, MPU9250_FIFO_EN), fifo_en);
+}
+
+// FIFO_COUNT
+
+uint16_t mpu9250_fifo_count_get(mpu9250 *const device)
+{
+  return (
+    (mpu9250_read(device, MPU9250_FIFO_COUNTH) << 8) |
+    (mpu9250_read(device, MPU9250_FIFO_COUNTL) << 0)
+  );
+}
+
+// FIFO_R_W
+
+uint8_t mpu9250_fifo_r_w_set(mpu9250 *const device, const uint8_t val)
+{
+  return mpu9250_write(device, MPU9250_FIFO_R_W, val);
+}
+
+uint8_t mpu9250_fifo_r_w_get(mpu9250 *const device)
+{
+  return mpu9250_read(device, MPU9250_FIFO_R_W);
+}
+
+// FIFO Samples
+
+static mpu9250_sample fifo_accel_sample;
+static mpu9250_sample fifo_gyro_sample;
+static mpu9250_sample fifo_magneto_sample;
+
+uint8_t mpu9250_fifo_sample_count(mpu9250 *const device, const mpu9250_fifo_en *const fifo_en)
+{
+  uint16_t expected_bytes = 0;
+  if (fifo_en->accel) expected_bytes += 6;
+  if (fifo_en->temp_fifo_en) expected_bytes += 2;
+  if (fifo_en->gyro_xout) expected_bytes += 2;
+  if (fifo_en->gyro_yout) expected_bytes += 2;
+  if (fifo_en->gyro_zout) expected_bytes += 2;
+  if (fifo_en->slv0) expected_bytes += 6;
+  if (fifo_en->slv1) expected_bytes += 6;
+  if (fifo_en->slv2) expected_bytes += 6;
+
+  return mpu9250_fifo_count_get(device) / expected_bytes;
+}
+
+uint8_t mpu9250_fifo_sample_read(mpu9250 *const device, const mpu9250_fifo_en *const fifo_en, mpu9250_fifo_sample *const fifo_sample)
+{
+  if (mpu9250_fifo_sample_count(device, fifo_en) < 1) return 0;
+
+  if (fifo_en->accel)
+  {
+    fifo_accel_sample.x = (int16_t)((mpu9250_fifo_r_w_get(device) << 8) | mpu9250_fifo_r_w_get(device));
+    fifo_accel_sample.y = (int16_t)((mpu9250_fifo_r_w_get(device) << 8) | mpu9250_fifo_r_w_get(device));
+    fifo_accel_sample.z = (int16_t)((mpu9250_fifo_r_w_get(device) << 8) | mpu9250_fifo_r_w_get(device));
+    fifo_sample->accel_sample = &fifo_accel_sample;
+  }
+  else
+  {
+    fifo_sample->accel_sample = 0;
+  }
+
+  if (fifo_en->temp_fifo_en)
+  {
+    // Currently ignored
+    mpu9250_fifo_r_w_get(device);
+    mpu9250_fifo_r_w_get(device);
+  }
+
+  uint8_t gyro_hit = 0;
+  if (fifo_en->gyro_xout)
+  {
+    fifo_gyro_sample.x = (int16_t)((mpu9250_fifo_r_w_get(device) << 8) | mpu9250_fifo_r_w_get(device));
+    gyro_hit |= 1;
+  }
+
+  if (fifo_en->gyro_yout)
+  {
+    fifo_gyro_sample.y = (int16_t)((mpu9250_fifo_r_w_get(device) << 8) | mpu9250_fifo_r_w_get(device));
+    gyro_hit |= 1;
+  }
+
+  if (fifo_en->gyro_zout)
+  {
+    fifo_gyro_sample.z = (int16_t)((mpu9250_fifo_r_w_get(device) << 8) | mpu9250_fifo_r_w_get(device));
+    gyro_hit |= 1;
+  }
+
+  if (gyro_hit)
+  {
+    fifo_sample->gyro_sample = &fifo_gyro_sample;
+  }
+  else
+  {
+    fifo_sample->gyro_sample = 0;
+  }
+
+  fifo_sample->magneto_sample = 0;
+
+  return 1;
+}
+
+// Gyro Bias
+
+uint8_t mpu9250_xg_offset_set(mpu9250 *const device, const int16_t xg_offset)
+{
+  return mpu9250_write(device, MPU9250_XG_OFFSET_H, (xg_offset >> 8) & 0xFF) &&
+         mpu9250_write(device, MPU9250_XG_OFFSET_L, (xg_offset >> 0) & 0xFF);
+}
+
+int16_t mpu9250_xg_offset_get(mpu9250 *const device)
+{
+  return (mpu9250_read(device, MPU9250_XG_OFFSET_H) << 8) | mpu9250_read(device, MPU9250_XG_OFFSET_L);
+}
+
+uint8_t mpu9250_yg_offset_set(mpu9250 *const device, const int16_t yg_offset)
+{
+  return mpu9250_write(device, MPU9250_YG_OFFSET_H, (yg_offset >> 8) & 0xFF) &&
+         mpu9250_write(device, MPU9250_YG_OFFSET_L, (yg_offset >> 0) & 0xFF);
+}
+
+int16_t mpu9250_yg_offset_get(mpu9250 *const device)
+{
+  return (mpu9250_read(device, MPU9250_YG_OFFSET_H) << 8) | mpu9250_read(device, MPU9250_YG_OFFSET_L);
+}
+
+uint8_t mpu9250_zg_offset_set(mpu9250 *const device, const int16_t zg_offset)
+{
+  return mpu9250_write(device, MPU9250_ZG_OFFSET_H, (zg_offset >> 8) & 0xFF) &&
+         mpu9250_write(device, MPU9250_ZG_OFFSET_L, (zg_offset >> 0) & 0xFF);
+}
+
+int16_t mpu9250_zg_offset_get(mpu9250 *const device)
+{
+  return (mpu9250_read(device, MPU9250_ZG_OFFSET_H) << 8) | mpu9250_read(device, MPU9250_ZG_OFFSET_L);
+}
