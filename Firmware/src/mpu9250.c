@@ -729,6 +729,20 @@ uint8_t mpu9250_fifo_en_get(mpu9250 *const device, mpu9250_fifo_en *const fifo_e
   return mpu9250_fifo_en_unpack(mpu9250_read(device, MPU9250_FIFO_EN), fifo_en);
 }
 
+uint8_t mpu9250_fifo_en_packet_size(const mpu9250_fifo_en *const fifo_en)
+{
+  uint8_t expected_bytes = 0;
+  if (fifo_en->accel) expected_bytes += 6;
+  if (fifo_en->temp_fifo_en) expected_bytes += 2;
+  if (fifo_en->gyro_xout) expected_bytes += 2;
+  if (fifo_en->gyro_yout) expected_bytes += 2;
+  if (fifo_en->gyro_zout) expected_bytes += 2;
+  if (fifo_en->slv0) expected_bytes += 6;
+  if (fifo_en->slv1) expected_bytes += 6;
+  if (fifo_en->slv2) expected_bytes += 6;
+  return expected_bytes;
+}
+
 // FIFO_COUNT
 
 uint16_t mpu9250_fifo_count_get(mpu9250 *const device)
@@ -759,17 +773,7 @@ static mpu9250_sample fifo_magneto_sample;
 
 uint8_t mpu9250_fifo_sample_count(mpu9250 *const device, const mpu9250_fifo_en *const fifo_en)
 {
-  uint16_t expected_bytes = 0;
-  if (fifo_en->accel) expected_bytes += 6;
-  if (fifo_en->temp_fifo_en) expected_bytes += 2;
-  if (fifo_en->gyro_xout) expected_bytes += 2;
-  if (fifo_en->gyro_yout) expected_bytes += 2;
-  if (fifo_en->gyro_zout) expected_bytes += 2;
-  if (fifo_en->slv0) expected_bytes += 6;
-  if (fifo_en->slv1) expected_bytes += 6;
-  if (fifo_en->slv2) expected_bytes += 6;
-
-  return mpu9250_fifo_count_get(device) / expected_bytes;
+  return mpu9250_fifo_count_get(device) / mpu9250_fifo_en_packet_size(fifo_en);
 }
 
 uint8_t mpu9250_fifo_sample_read(mpu9250 *const device, const mpu9250_fifo_en *const fifo_en, mpu9250_fifo_sample *const fifo_sample)
@@ -778,9 +782,9 @@ uint8_t mpu9250_fifo_sample_read(mpu9250 *const device, const mpu9250_fifo_en *c
 
   if (fifo_en->accel)
   {
-    fifo_accel_sample.x = (int16_t)((mpu9250_fifo_r_w_get(device) << 8) | mpu9250_fifo_r_w_get(device));
-    fifo_accel_sample.y = (int16_t)((mpu9250_fifo_r_w_get(device) << 8) | mpu9250_fifo_r_w_get(device));
-    fifo_accel_sample.z = (int16_t)((mpu9250_fifo_r_w_get(device) << 8) | mpu9250_fifo_r_w_get(device));
+    fifo_accel_sample.x = (mpu9250_fifo_r_w_get(device) << 8) | mpu9250_fifo_r_w_get(device);
+    fifo_accel_sample.y = (mpu9250_fifo_r_w_get(device) << 8) | mpu9250_fifo_r_w_get(device);
+    fifo_accel_sample.z = (mpu9250_fifo_r_w_get(device) << 8) | mpu9250_fifo_r_w_get(device);
     fifo_sample->accel_sample = &fifo_accel_sample;
   }
   else
@@ -861,4 +865,26 @@ uint8_t mpu9250_zg_offset_set(mpu9250 *const device, const int16_t zg_offset)
 int16_t mpu9250_zg_offset_get(mpu9250 *const device)
 {
   return (mpu9250_read(device, MPU9250_ZG_OFFSET_H) << 8) | mpu9250_read(device, MPU9250_ZG_OFFSET_L);
+}
+
+// INT_STATUS
+
+uint8_t mpu9250_int_status_pack(const mpu9250_int_status *const int_status)
+{
+  return (int_status->wom_int << 6) |
+    (int_status->fifo_overflow_int << 4) |
+    (int_status->fsync_int << 3) |
+    (int_status->raw_data_rdy_int << 0);
+}
+uint8_t mpu9250_int_status_unpack(const uint8_t val, mpu9250_int_status *const int_status)
+{
+  int_status->wom_int = (val >> 6) & 1;
+  int_status->fifo_overflow_int = (val >> 4) & 1;
+  int_status->fsync_int = (val >> 3) & 1;
+  int_status->raw_data_rdy_int = (val >> 0) & 1;
+  return 1;
+}
+uint8_t mpu9250_int_status_get(mpu9250 *const device, mpu9250_int_status *const int_status)
+{
+  return mpu9250_int_status_unpack(mpu9250_read(device, MPU9250_INT_STATUS), int_status);
 }

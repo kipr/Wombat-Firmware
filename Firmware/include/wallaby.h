@@ -15,6 +15,7 @@
 #include "wallaby_servo.h"
 #include "wallaby_spi.h"
 #include "wallaby_uart.h"
+#include "wallaby_debug.h"
 
 
 // Wallaby2

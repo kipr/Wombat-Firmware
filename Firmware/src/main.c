@@ -42,10 +42,14 @@ int main()
     //debug_printf("starting\n");
     int low_volt_alarmed = 0;
 
+    wallaby_debug_init();
+
     // Loop until button is pressed
     uint32_t count = 0;
     while (1)
     {
+        wallaby_debug_poll();
+
         count += 1;
         {
             // only sample motor backemf 1/4 of the time

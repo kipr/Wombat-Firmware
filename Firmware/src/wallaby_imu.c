@@ -39,7 +39,48 @@ int16_t gyro_acc_x_avg;
 int16_t gyro_acc_y_avg;
 int16_t gyro_acc_z_avg;
 
-static uint8_t asd_count = 0;
+static uint16_t asd_count = 0;
+
+static void get_gyro_acc_x_avg(const char *const command)
+{
+  wallaby_debug_printf("gyro_acc_x_avg = %d\r\n", gyro_acc_x_avg);
+}
+
+static void fifo_count(const char *const command)
+{
+  uint16_t count = mpu9250_fifo_count_get(mpu);
+  wallaby_debug_printf("fifo_count = %d\r\n", count);
+}
+
+static void fifo_poll(const char *const command)
+{
+  mpu9250_fifo_sample sample;
+  uint16_t count = 0;
+  delay_us(100000);
+  while (mpu9250_fifo_sample_read(mpu, &fifo_en, &sample))
+  {
+    wallaby_debug_printf("accel = %d, %d, %d\r\n", sample.accel_sample->x, sample.accel_sample->y, sample.accel_sample->z);
+    wallaby_debug_printf("gyro = %d, %d, %d\r\n", sample.gyro_sample->x, sample.gyro_sample->y, sample.gyro_sample->z);
+  }
+}
+
+static void dump_registers(const char *const command)
+{
+  wallaby_debug_printf("XG_OFFSET = %d\r\n", mpu9250_xg_offset_get(mpu));
+  wallaby_debug_printf("YG_OFFSET = %d\r\n", mpu9250_yg_offset_get(mpu));
+  wallaby_debug_printf("ZG_OFFSET = %d\r\n", mpu9250_zg_offset_get(mpu));
+  wallaby_debug_printf("SMPLRT_DIV = 0x%x\r\n", mpu9250_smplrt_div_get(mpu));
+  wallaby_debug_printf("CONFIG = 0x%x\r\n", mpu9250_read(mpu, MPU9250_CONFIG));
+  wallaby_debug_printf("GYRO_CONFIG = 0x%x\r\n", mpu9250_read(mpu, MPU9250_GYRO_CONFIG));
+  wallaby_debug_printf("ACCEL_CONFIG = 0x%x\r\n", mpu9250_read(mpu, MPU9250_ACCEL_CONFIG));
+  wallaby_debug_printf("ACCEL_CONFIG2 = 0x%x\r\n", mpu9250_read(mpu, MPU9250_ACCEL_CONFIG_2));
+  wallaby_debug_printf("FIFO_EN = 0x%x\r\n", mpu9250_read(mpu, MPU9250_FIFO_EN));
+  wallaby_debug_printf("FIFO_COUNT = %u\r\n", mpu9250_fifo_count_get(mpu));
+  wallaby_debug_printf("USER_CTRL = 0x%x\r\n", mpu9250_read(mpu, MPU9250_USER_CTRL));
+  wallaby_debug_printf("PWR_MGMT_1 = 0x%x\r\n", mpu9250_read(mpu, MPU9250_PWR_MGMT_1));
+  wallaby_debug_printf("PWR_MGMT_2 = 0x%x\r\n", mpu9250_read(mpu, MPU9250_PWR_MGMT_2));
+  wallaby_debug_printf("INT_STATUS = 0x%x\r\n", mpu9250_read(mpu, MPU9250_INT_STATUS));
+}
 
 void wallaby_imu_init()
 {
@@ -100,10 +141,10 @@ void wallaby_imu_init()
   
   // Set config
   mpu9250_config_set(mpu, &(mpu9250_config) {
-    .fifo_mode = 0,
+    .fifo_mode = 1,
     .ext_sync_set = 0,
     // 41 Hz
-    .dlpf_cfg = MPU9250_CONFIG_DLPF_CFG_184_HZ,
+    .dlpf_cfg = MPU9250_CONFIG_DLPF_CFG_41_HZ,
   });
 
   // Set sample rate
@@ -268,6 +309,9 @@ void wallaby_imu_init()
   mpu9250_fifo_sample sample;
   while (num_samples < 40)
   {
+    // uint16_t count = mpu9250_fifo_count_get(mpu);
+    // if (count != 0) asd_count = count;
+
     if (!mpu9250_fifo_sample_read(mpu, &fifo_en, &sample))
     {
       delay_us(100);
@@ -280,7 +324,6 @@ void wallaby_imu_init()
     ++num_samples;
   }
 
-  asd_count = num_samples;
 
   gyro_acc_x_avg = gyro_acc_x / num_samples;
   gyro_acc_y_avg = gyro_acc_y / num_samples;
@@ -289,6 +332,20 @@ void wallaby_imu_init()
   mpu9250_xg_offset_set(mpu, -gyro_acc_x_avg / 4);
   mpu9250_yg_offset_set(mpu, -gyro_acc_y_avg / 4);
   mpu9250_zg_offset_set(mpu, -gyro_acc_z_avg / 4);
+
+  wallaby_debug_register_command("fifo_count", fifo_count);
+  wallaby_debug_register_command("get_gyro_acc_x_avg", get_gyro_acc_x_avg);
+  wallaby_debug_register_command("fifo_poll", fifo_poll);
+  wallaby_debug_register_command("dump_registers", dump_registers);
+
+  mpu9250_user_ctrl_set(mpu, &(mpu9250_user_ctrl) {
+        .fifo_en = 1,
+        .i2c_mst_en = 0,
+        .i2c_if_dis = 0,
+        .fifo_rst = 0,
+        .i2c_mst_rst = 0,
+        .sig_cond_rst = 0
+      });
 }
 
 uint32_t last_update = 0;
@@ -298,6 +355,8 @@ mpu9250_sample smoothed_gyro_sample = {
   .z = 0
 };
 
+mpu9250_sample latest_accel_sample;
+mpu9250_sample latest_gyro_sample;
 
 void wallaby_imu_update()
 {
@@ -305,22 +364,38 @@ void wallaby_imu_update()
   if (usCount - last_update < 2000) return;
   last_update = usCount;
 
-  mpu9250_fifo_sample sample;
-  asd_count = 0;
-  if (mpu9250_fifo_sample_count(mpu, &fifo_en) < 1) return;
-
-  while (mpu9250_fifo_sample_read(mpu, &fifo_en, &sample))
+  /*mpu9250_int_status int_status;
+  if (mpu9250_int_status_get(mpu, &int_status))
   {
-    asd_count++;
+    if (int_status.fifo_overflow_int)
+    {
+      mpu9250_user_ctrl_set(mpu, &(mpu9250_user_ctrl) {
+        .fifo_en = 1,
+        .i2c_mst_en = 0,
+        .i2c_if_dis = 0,
+        .fifo_rst = 1,
+        .i2c_mst_rst = 0,
+        .sig_cond_rst = 0
+      });
+    }
+  }*/
+
+
+  mpu9250_fifo_sample sample;
+  uint16_t count = 0;
+  while (mpu9250_fifo_sample_read(mpu, &fifo_en, &sample)) ++count;
+
+  if (count != 0)
+  {
+    latest_accel_sample = *sample.accel_sample;
+    latest_gyro_sample = *sample.gyro_sample;
   }
 
-  mpu9250_accel_sample_write_regs(mpu, sample.accel_sample, aTxBuffer);
-  mpu9250_gyro_sample_write_regs(mpu, sample.gyro_sample, aTxBuffer);
+  mpu9250_accel_sample_write_regs(mpu, &latest_accel_sample, aTxBuffer);
+  mpu9250_gyro_sample_write_regs(mpu, &latest_gyro_sample, aTxBuffer);
 
   mpu9250_sample magneto_sample;
-  mpu9250_magneto_sample_read(mpu, &magneto_sample);
-
-  magneto_sample.x = asd_count << 4;
+  magneto_sample.x = mpu9250_fifo_en_packet_size(&fifo_en) << 4;
   magneto_sample.y = gyro_acc_y_avg;
   magneto_sample.z = gyro_acc_z_avg;
   mpu9250_magneto_sample_write_regs(mpu, &magneto_sample, aTxBuffer);

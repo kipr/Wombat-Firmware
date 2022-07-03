@@ -479,6 +479,7 @@ uint8_t mpu9250_fifo_en_pack(const mpu9250_fifo_en *const fifo_en);
 uint8_t mpu9250_fifo_en_unpack(const uint8_t val, mpu9250_fifo_en *const fifo_en);
 uint8_t mpu9250_fifo_en_set(mpu9250 *const device, const mpu9250_fifo_en *const fifo_en);
 uint8_t mpu9250_fifo_en_get(mpu9250 *const device, mpu9250_fifo_en *const fifo_en);
+uint8_t mpu9250_fifo_en_packet_size(const mpu9250_fifo_en *const fifo_en);
 
 // FIFO_COUNT
 
@@ -511,6 +512,20 @@ int16_t mpu9250_yg_offset_get(mpu9250 *const device);
 
 uint8_t mpu9250_zg_offset_set(mpu9250 *const device, const int16_t zg_offset);
 int16_t mpu9250_zg_offset_get(mpu9250 *const device);
+
+// INT_STATUS
+
+typedef struct
+{
+  uint8_t wom_int : 1;
+  uint8_t fifo_overflow_int : 1;
+  uint8_t fsync_int : 1;
+  uint8_t raw_data_rdy_int : 1;
+} mpu9250_int_status;
+
+uint8_t mpu9250_int_status_pack(const mpu9250_int_status *const int_status);
+uint8_t mpu9250_int_status_unpack(const uint8_t val, mpu9250_int_status *const int_status);
+uint8_t mpu9250_int_status_get(mpu9250 *const device, mpu9250_int_status *const int_status);
 
 
 #endif
