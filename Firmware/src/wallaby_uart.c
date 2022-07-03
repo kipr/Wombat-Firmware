@@ -38,7 +38,7 @@ void uart3_demo()
     // read byte and print via usart2
     unsigned char rd = USART_ReceiveData(USART3);
     //debug_printf("got %c\n", rd);
-    USART_SendData(USART3, 'D');        
+    USART_SendData(USART3, 'D');
 }
 
 

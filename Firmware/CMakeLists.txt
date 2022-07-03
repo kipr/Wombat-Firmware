@@ -25,6 +25,7 @@ set(lss_file ${APPLICATION_NAME}.lss)
 
 # add sources to elf file
 add_executable(${elf_file} ${sources})
+add_definitions(-DMPU9250_WALLABY)
 
 # link StdPeriph and cmsis library to project
 # configure_file(${PROJECT_SOURCE_DIR}/Firmware/src/stm32f4xx_hal_conf.h ${PROJECT_BINARY_DIR}/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_conf.h)

@@ -308,7 +308,7 @@ void init()
 
     //setupGyro();
     debug_printf("calling setupIMU()\r\n");
-    setupIMU();
+    wallaby_imu_init();
 /*
     setupUART2();
     setupUART3();
