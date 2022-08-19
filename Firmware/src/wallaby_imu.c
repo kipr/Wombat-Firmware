@@ -168,7 +168,7 @@ void setupIMU()
     }
     SPI3_CS0_PORT->BSRRL |= SPI3_CS0; // done with chip
 }
-
+/*
 void readIMU()
 {
     uint16_t accel_x, accel_y, accel_z;
@@ -268,6 +268,56 @@ void readIMU()
     debug_printf("mag %f %f %f\n",mx, my, mz);
 
     // TODO: put mx, my mz back into wallaby registers
+}*/
+
+void readIMU(){
+    uint8_t buff[7];
+    int i;
+
+    // ---------- accelerometer ----------
+    // read accel
+    SPI3_CS0_PORT->BSRRH |= SPI3_CS0; // chip select low
+    SPI3_write(0x80 | MPU9250_ACCEL_START_REG);
+    for (i = 0; i<6; ++i) buff[i] = SPI3_write(0x00);
+    SPI3_CS0_PORT->BSRRL |= SPI3_CS0; // done with chip
+
+    // write to the buffer that the wombat uses
+    aTxBuffer[REG_RW_ACCEL_X_H]  = buff[0];
+    aTxBuffer[REG_RW_ACCEL_X_L] = buff[1];
+    aTxBuffer[REG_RW_ACCEL_Y_H] = buff[2];
+    aTxBuffer[REG_RW_ACCEL_Y_L] = buff[3];
+    aTxBuffer[REG_RW_ACCEL_Z_H] = buff[4];
+    aTxBuffer[REG_RW_ACCEL_Z_L] = buff[5];
+
+    // ---------- gyrometer ----------
+    // read gyro
+    SPI3_CS0_PORT->BSRRH |= SPI3_CS0; // chip select low
+    SPI3_write(0x80 | MPU9250_GYRO_START_REG);
+    for (i = 0; i<6; ++i) buff[i] = SPI3_write(0x00);
+    SPI3_CS0_PORT->BSRRL |= SPI3_CS0; // done with chip
+
+    // write to the buffer that the wombat uses
+    aTxBuffer[REG_RW_GYRO_X_H]  = buff[0];
+    aTxBuffer[REG_RW_GYRO_X_L] = buff[1];
+    aTxBuffer[REG_RW_GYRO_Y_H] = buff[2];
+    aTxBuffer[REG_RW_GYRO_Y_L] = buff[3];
+    aTxBuffer[REG_RW_GYRO_Z_H] = buff[4];
+    aTxBuffer[REG_RW_GYRO_Z_L] = buff[5];
+
+    // ---------- magnetometer ----------
+    // read magnetometer
+    SPI3_CS0_PORT->BSRRH |= SPI3_CS0; // chip select low
+    SPI3_write(0x80 | MPU9250_EXT_SENS_DATA_00_REG);
+    for (i = 0; i<7; ++i) buff[i] = SPI3_write(0x00);
+    SPI3_CS0_PORT->BSRRL |= SPI3_CS0; // done with chip
+
+    // write to the buffer that the wombat uses
+    aTxBuffer[REG_RW_MAG_X_H]  = buff[0];
+    aTxBuffer[REG_RW_MAG_X_L] = buff[1];
+    aTxBuffer[REG_RW_MAG_Y_H] = buff[2];
+    aTxBuffer[REG_RW_MAG_Y_L] = buff[3];
+    aTxBuffer[REG_RW_MAG_Z_H] = buff[4];
+    aTxBuffer[REG_RW_MAG_Z_L] = buff[5];
 }
 
 
