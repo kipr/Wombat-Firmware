@@ -127,87 +127,87 @@
 // E x 5 4 3 2 1 0
 #define REG_RW_BUTTONS 88
 
-#define REG_READABLE_COUNT 89
+// accel and gyro sensitivity
+#define REG_ACCEL_SENSITIVITY 89
+#define REG_GYRO_SENSITIVITY 90
+
+#define REG_READABLE_COUNT 91
 
 // WRITE ONLY Registers---------------------------------------------------------
-#define REG_W_PID_0_P_H 89
-#define REG_W_PID_0_P_L 90
-#define REG_W_PID_0_PD_H 91
-#define REG_W_PID_0_PD_L 92
-#define REG_W_PID_0_I_H 93
-#define REG_W_PID_0_I_L 94
-#define REG_W_PID_0_ID_H 95
-#define REG_W_PID_0_ID_L 96
-#define REG_W_PID_0_D_H 97
-#define REG_W_PID_0_D_L 98
-#define REG_W_PID_0_DD_H 99
-#define REG_W_PID_0_DD_L 100
-#define REG_W_PID_1_P_H 101
-#define REG_W_PID_1_P_L 102
-#define REG_W_PID_1_PD_H 103
-#define REG_W_PID_1_PD_L 104
-#define REG_W_PID_1_I_H 105
-#define REG_W_PID_1_I_L 106
-#define REG_W_PID_1_ID_H 107
-#define REG_W_PID_1_ID_L 108
-#define REG_W_PID_1_D_H 119
-#define REG_W_PID_1_D_L 110
-#define REG_W_PID_1_DD_H 111
-#define REG_W_PID_1_DD_L 112
-#define REG_W_PID_2_P_H 113
-#define REG_W_PID_2_P_L 114
-#define REG_W_PID_2_PD_H 115
-#define REG_W_PID_2_PD_L 116
-#define REG_W_PID_2_I_H 117
-#define REG_W_PID_2_I_L 118
-#define REG_W_PID_2_ID_H 119
-#define REG_W_PID_2_ID_L 120
-#define REG_W_PID_2_D_H 121
-#define REG_W_PID_2_D_L 122
-#define REG_W_PID_2_DD_H 123
-#define REG_W_PID_2_DD_L 124
+#define REG_W_PID_0_P_H 91
+#define REG_W_PID_0_P_L 92
+#define REG_W_PID_0_PD_H 93
+#define REG_W_PID_0_PD_L 94
+#define REG_W_PID_0_I_H 95
+#define REG_W_PID_0_I_L 96
+#define REG_W_PID_0_ID_H 97
+#define REG_W_PID_0_ID_L 98
+#define REG_W_PID_0_D_H 99
+#define REG_W_PID_0_D_L 100
+#define REG_W_PID_0_DD_H 101
+#define REG_W_PID_0_DD_L 102
+#define REG_W_PID_1_P_H 103
+#define REG_W_PID_1_P_L 104
+#define REG_W_PID_1_PD_H 105
+#define REG_W_PID_1_PD_L 106
+#define REG_W_PID_1_I_H 107
+#define REG_W_PID_1_I_L 108
+#define REG_W_PID_1_ID_H 109
+#define REG_W_PID_1_ID_L 110
+#define REG_W_PID_1_D_H 111
+#define REG_W_PID_1_D_L 112
+#define REG_W_PID_1_DD_H 113
+#define REG_W_PID_1_DD_L 114
+#define REG_W_PID_2_P_H 115
+#define REG_W_PID_2_P_L 116
+#define REG_W_PID_2_PD_H 117
+#define REG_W_PID_2_PD_L 118
+#define REG_W_PID_2_I_H 119
+#define REG_W_PID_2_I_L 120
+#define REG_W_PID_2_ID_H 121
+#define REG_W_PID_2_ID_L 122
+#define REG_W_PID_2_D_H 123
+#define REG_W_PID_2_D_L 124
+#define REG_W_PID_2_DD_H 125
+#define REG_W_PID_2_DD_L 126
 
-#define REG_W_PID_3_P_H 125
-#define REG_W_PID_3_P_L 126
-#define REG_W_PID_3_PD_H 127
-#define REG_W_PID_3_PD_L 128
-#define REG_W_PID_3_I_H 129
-#define REG_W_PID_3_I_L 130
-#define REG_W_PID_3_ID_H 131
-#define REG_W_PID_3_ID_L 132
-#define REG_W_PID_3_D_H 133
-#define REG_W_PID_3_D_L 134
-#define REG_W_PID_3_DD_H 135
-#define REG_W_PID_3_DD_L 136
+#define REG_W_PID_3_P_H 127
+#define REG_W_PID_3_P_L 128
+#define REG_W_PID_3_PD_H 129
+#define REG_W_PID_3_PD_L 130
+#define REG_W_PID_3_I_H 131
+#define REG_W_PID_3_I_L 132
+#define REG_W_PID_3_ID_H 133
+#define REG_W_PID_3_ID_L 134
+#define REG_W_PID_3_D_H 135
+#define REG_W_PID_3_D_L 136
+#define REG_W_PID_3_DD_H 137
+#define REG_W_PID_3_DD_L 138
 
 // Motor 0 position goal
-#define REG_W_MOT_0_GOAL_B3 137
-#define REG_W_MOT_0_GOAL_B2 138
-#define REG_W_MOT_0_GOAL_B1 139
-#define REG_W_MOT_0_GOAL_B0 140
+#define REG_W_MOT_0_GOAL_B3 139
+#define REG_W_MOT_0_GOAL_B2 140
+#define REG_W_MOT_0_GOAL_B1 141
+#define REG_W_MOT_0_GOAL_B0 142
 
 // Motor 1 position goal
-#define REG_W_MOT_1_GOAL_B3 141
-#define REG_w_MOT_1_GOAL_B2 142
-#define REG_w_MOT_1_GOAL_B1 143
-#define REG_W_MOT_1_GOAL_B0 144
+#define REG_W_MOT_1_GOAL_B3 143
+#define REG_w_MOT_1_GOAL_B2 144
+#define REG_w_MOT_1_GOAL_B1 145
+#define REG_W_MOT_1_GOAL_B0 146
 
 // Motor 2 position goal
-#define REG_W_MOT_2_GOAL_B3 145
-#define REG_W_MOT_2_GOAL_B2 146
-#define REG_W_MOT_2_GOAL_B1 147
-#define REG_W_MOT_2_GOAL_B0 148
+#define REG_W_MOT_2_GOAL_B3 147
+#define REG_W_MOT_2_GOAL_B2 148
+#define REG_W_MOT_2_GOAL_B1 149
+#define REG_W_MOT_2_GOAL_B0 150
 
 // Motor 3 position goal
-#define REG_W_MOT_3_GOAL_B3 149
-#define REG_W_MOT_3_GOAL_B2 150
-#define REG_W_MOT_3_GOAL_B1 151
-#define REG_W_MOT_3_GOAL_B0 152
+#define REG_W_MOT_3_GOAL_B3 151
+#define REG_W_MOT_3_GOAL_B2 152
+#define REG_W_MOT_3_GOAL_B1 153
+#define REG_W_MOT_3_GOAL_B0 154
 
-// accel and gyro sensitivity
-#define REG_ACCEL_SENSITIVITY 153
-#define REG_GYRO_SENSITIVITY 154
-
-#define REG_ALL_COUNT 155
+#define REG_ALL_COUNT 155 // 1 + last register
 
 #endif // #defineWALLABY_SPI_R1_H_
