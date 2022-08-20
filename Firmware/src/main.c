@@ -75,7 +75,7 @@ int main()
             update_dig_pins();
             int16_t batt = adc_update();
 
-            if (count % 10 == 0)
+            if (count % 2 == 0)
             {
                 readIMU();
             }
