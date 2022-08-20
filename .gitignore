@@ -15,3 +15,5 @@ CTestTestfile.cmake
 .idea/*
 cmake-build-debug/*
 build/*
+config_env.sh
+.vscode/
