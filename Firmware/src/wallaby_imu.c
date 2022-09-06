@@ -43,12 +43,6 @@
 
 float MAGN_SCALE_FACTORS[3] = {0.0f, 0.0f, 0.0f};
 
-uint8_t cached_gyro_sensitivity;
-uint8_t cached_accel_sensitivity;
-
-uint8_t getCachedGyroSensitivity() { return cached_gyro_sensitivity; }
-uint8_t getCachedAccelSensitivity() { return cached_accel_sensitivity; }
-
 uint8_t IMU_write(uint8_t address, uint8_t val)
 {
     uint8_t ret;
@@ -138,44 +132,6 @@ uint8_t getSensitivityValue(uint8_t sensitivity_byte)
     return sensitivity;
 }
 
-void setGyroSensitivity(uint8_t sensitivity_val)
-{
-    uint8_t sensitivity_byte = getGyroSensitivityByte(sensitivity_val);
-    if (sensitivity_byte == 0b11111111)
-    {
-        return; // invalid sensitivity
-    }
-
-    uint8_t regval = IMU_read(MPU9250_GYRO_CONFIG_REG);
-    regval &= (~0x3);  // clear fchoise
-    regval &= (~0x18); // clear afs
-
-    regval |= sensitivity_byte;
-    aTxBuffer[REG_GYRO_SENSITIVITY_VAL] = sensitivity_val;
-    cached_gyro_sensitivity = sensitivity_val;
-
-    return;
-}
-void setAccelSensitivity(uint8_t sensitivity_val)
-{
-    uint8_t sensitivity_byte = getAccelSensitivityByte(sensitivity_val);
-    if (sensitivity_byte == 0b11111111)
-    {
-        return; // invalid sensitivity
-    }
-
-    delay_us(50);
-
-    uint8_t regval = IMU_read(MPU9250_ACCEL_CONFIG_REG);
-    regval &= (~0x18); // clear afs
-    regval |= sensitivity_byte;
-    aTxBuffer[REG_ACCEL_SENSITIVITY_VAL] = sensitivity_val;
-    cached_accel_sensitivity = sensitivity_val;
-
-    delay_us(50);
-    return;
-}
-
 void setupIMU()
 {
     debug_printf("inside setupIMU\r\n");
@@ -217,9 +173,8 @@ void setupIMU()
     regval &= (~0x3);  // clear fchoise
     regval &= (~0x18); // clear afs
 
-    regval |= GYRO_DEFAULT_SENSITIVITY_BYTE;
-    aTxBuffer[REG_GYRO_SENSITIVITY_VAL] = getSensitivityValue(GYRO_DEFAULT_SENSITIVITY_BYTE);
-    cached_gyro_sensitivity = getSensitivityValue(GYRO_DEFAULT_SENSITIVITY_BYTE);
+    regval |= GYRO_DEFAULT_SENSITIVITY_BYTE; // (0x1 <, 3)
+    aTxBuffer[REG_GYRO_SENSITIVITY] = getSensitivityValue(GYRO_DEFAULT_SENSITIVITY_BYTE);
 
     // fchoice unchanged
     debug_printf("gyro config = %x\r\n", regval);
@@ -229,8 +184,7 @@ void setupIMU()
     regval = IMU_read(MPU9250_ACCEL_CONFIG_REG);
     regval &= (~0x18);                        // clear afs
     regval |= ACCEL_DEFAULT_SENSITIVITY_BYTE; // (0x1 << 3);
-    aTxBuffer[REG_ACCEL_SENSITIVITY_VAL] = getSensitivityValue(ACCEL_DEFAULT_SENSITIVITY_BYTE);
-    cached_accel_sensitivity = getSensitivityValue(ACCEL_DEFAULT_SENSITIVITY_BYTE);
+    aTxBuffer[REG_ACCEL_SENSITIVITY] = getSensitivityValue(ACCEL_DEFAULT_SENSITIVITY_BYTE);
 
     // fchoice unchanges
     debug_printf("accel config = %x\r\n", regval);
