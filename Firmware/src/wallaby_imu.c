@@ -50,7 +50,7 @@ uint8_t IMU_write(uint8_t address, uint8_t val)
     SPI3_write(address);
     ret = SPI3_write(val);
     SPI3_CS0_PORT->BSRRL |= SPI3_CS0; // done with chip
-    delay_us(2000);                   // some sleep = necessary
+    delay_us(100);                    // some sleep = necessary
     return ret;
 }
 
@@ -61,7 +61,7 @@ uint8_t IMU_read(uint8_t address)
     SPI3_write(0x80 | address);
     ret = SPI3_write(0x00);
     SPI3_CS0_PORT->BSRRL |= SPI3_CS0; // done with chip
-    delay_us(2000);                   // some sleep = necessary
+    delay_us(100);                    // some sleep = necessary
     return ret;
 }
 
@@ -314,7 +314,7 @@ void readIMU()
     IMU_write(0x27, 0x80 | 0x07);
 
     // need sleeps between reads/writes
-    delay_us(100); // this sleep used to be 1000
+    delay_us(1000); // this sleep used to be 1000
 
     SPI3_CS0_PORT->BSRRH |= SPI3_CS0; // chip select low
     SPI3_write(0x80 | MPU9250_EXT_SENS_DATA_00_REG);
