@@ -50,6 +50,7 @@ uint8_t IMU_write(uint8_t address, uint8_t val)
     SPI3_write(address);
     ret = SPI3_write(val);
     SPI3_CS0_PORT->BSRRL |= SPI3_CS0; // done with chip
+    delay_us(2000);                   // some sleep = necessary
     return ret;
 }
 
@@ -60,6 +61,7 @@ uint8_t IMU_read(uint8_t address)
     SPI3_write(0x80 | address);
     ret = SPI3_write(0x00);
     SPI3_CS0_PORT->BSRRL |= SPI3_CS0; // done with chip
+    delay_us(2000);                   // some sleep = necessary
     return ret;
 }
 
