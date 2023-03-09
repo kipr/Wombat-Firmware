@@ -314,7 +314,7 @@ void readIMU()
     IMU_write(0x27, 0x80 | 0x07);
 
     // need sleeps between reads/writes
-    delay_us(1000); // this sleep used to be 1000
+    delay_us(1400); // total time for function = 2*100 + 3*100 + 1400 = 1900us = .0019ms
 
     SPI3_CS0_PORT->BSRRH |= SPI3_CS0; // chip select low
     SPI3_write(0x80 | MPU9250_EXT_SENS_DATA_00_REG);
