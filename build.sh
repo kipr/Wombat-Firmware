@@ -1,5 +1,4 @@
-#!/bin/bash
-mkdir -p build && cdbuild
-
-cmake -G "Unix Makefiles" -D "CMAKE_TOOLCHAIN_FILE=../CMake/GNU-ARM-Toolchain.cmake" -DBUILD_TYPE=RELEASE
+#/bin/bash
+mkdir build && cd build
+cmake .. -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=../CMake/GNU-ARM-Toolchain.cmake
 make -j4

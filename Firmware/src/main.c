@@ -4,15 +4,15 @@
 
 // STM32F405RG (see stm32f4xx.h to change target device)
 // you have to uncomment one of the options, I chose:
-//#define STM32F427_437xx
+// #define STM32F427_437xx
 
 // assert_param undefined reference errors are solved by defining USE_STDPERIPH_DRIVER
-//#define USE_STDPERIPH_DRIVER
+// #define USE_STDPERIPH_DRIVER
 
 // for startup file, make sure  STARTUP_FROM_RESET is defined
 
 // also have to specify the external crystal speed
-//#define HSE_VALUE=16000000
+// #define HSE_VALUE=16000000
 
 #include "stm32f4xx.h"
 
@@ -44,8 +44,6 @@ int main()
     // debug_printf("starting\n");
     int low_volt_alarmed = 0;
 
-    setupIMU();
-
     // Loop until button is pressed
     uint32_t count = 0;
     while (1)
@@ -72,21 +70,12 @@ int main()
             uint32_t before = usCount;
             update_dig_pins();
             int16_t batt = adc_update();
-
-            if (count % 2 == 0)
+            // readAccel();
+            // readMag();
+            // readGyro();
+            if (count % 10 == 0)
             {
                 readIMU();
-                if (count % 10 == 0)
-                {
-                    if (aTxBuffer[REG_GYRO_SENSITIVITY_VAL] != getCachedGyroSensitivity())
-                    {
-                        setGyroSensitivity(aTxBuffer[REG_GYRO_SENSITIVITY_VAL]);
-                    }
-                    if (aTxBuffer[REG_ACCEL_SENSITIVITY_VAL] != getCachedAccelSensitivity())
-                    {
-                        setAccelSensitivity(aTxBuffer[REG_ACCEL_SENSITIVITY_VAL]);
-                    }
-                }
             }
 
             if (batt < 636) // about 5.75 volts
