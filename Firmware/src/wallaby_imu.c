@@ -1,6 +1,7 @@
 #include "wallaby_imu.h"
 #include "wallaby.h"
 #include "mpu9250regmap.h"
+#include <stdint.h>
 
 #define WALLABY2
 
@@ -50,7 +51,22 @@
 #define ACCEL_FCHOICE_BYTE 0b00001000
 #define ACCEL_DLPF_BYTE 0b00000011
 
+// modes are determined by bytes 0-3
+//  0000 = power down
+//  0001 = single measurement
+//  0010 = continuous measurement @ 8hz
+//  0110 = continuous measurement @ 100Hz
+//  0100 = external trigger measurement mode
+//  1000 = self-test mode
+//  1111 = Fuse ROM access mode
+// #bits is determined by byte 4
+//      value of 0 = 14 bits
+//      value of 1 = 16 bits
+#define MAGNETOMETER_CONFIG_BYTE 0b00010110
+#define READ_FLAG 0b10000000
+
 float MAGN_SCALE_FACTORS[3] = {0.0f, 0.0f, 0.0f};
+float mag_bias_factory[3] = {.0f, .0f, .0f};
 
 /**
  * @brief Write a byte to the given address. This doesn't
@@ -67,6 +83,7 @@ uint8_t IMU_write(uint8_t address, uint8_t val)
     SPI3_write(address);
     ret = SPI3_write(val);
     SPI3_CS0_PORT->BSRRL |= SPI3_CS0; // done with chip
+    delay_us(10);
     return ret;
 }
 
@@ -85,6 +102,76 @@ uint8_t IMU_read(uint8_t address)
     ret = SPI3_write(0x00);
     SPI3_CS0_PORT->BSRRL |= SPI3_CS0; // done with chip
     return ret;
+}
+
+void enter_magnetometer_write_mode()
+{
+    // the first byte is whether it is a write or read
+    // 1 for read, 0 for write
+    IMU_write(I2C_SLV0_ADDR, AK8963_PHYSICAL_LOCAT);
+}
+/**
+ * @brief Use this if you won't be needing to access
+ * DO
+ *
+ */
+void enter_magnetometer_read_mode()
+{
+    // the first byte is whether
+    // 1 for read
+    IMU_write(I2C_SLV0_ADDR, AK8963_PHYSICAL_LOCAT | READ_FLAG);
+}
+
+/**
+ * @brief Use this in write mode to write
+ * to the DO
+ *
+ * @param ak8963_addr
+ * @param val
+ * @return uint8_t
+ */
+uint8_t magnetometer_write(uint8_t ak8963_addr, uint8_t val)
+{
+    IMU_write(I2C_SLV0_REG, ak8963_addr);
+    return IMU_write(I2C_SLV0_DO, val);
+}
+
+/**
+ * @brief Read `num_bytes` bytes, starting from `reg_start` into the provided buffer
+ *
+ * @param reg_start the starting register
+ * @param num_bytes how many bytes to read
+ * @param[out] out the buffer to write to
+ */
+void read_bytes(uint8_t reg_start, uint8_t num_bytes, uint8_t *out)
+{
+    SPI3_CS0_PORT->BSRRH |= SPI3_CS0;
+    SPI3_write(reg_start | READ_FLAG); // start reading from the external sensor data
+    for (uint8_t i = 0; i < num_bytes; ++i)
+    {
+        out[i] = SPI3_write(0x00); // write null byte to request data
+    }
+    SPI3_CS0_PORT->BSRRL |= SPI3_CS0;
+}
+
+/**
+ * @brief Read `num_bytes` from the magnetometer
+ *
+ * @param ak8963_addr_start the address on the ak8963 to start reading from
+ * @param num_bytes number of bytes to read, from 1 to 15 inclusive
+ * @param[out] out the buffer to write to
+ */
+void magnetometer_read_bytes(uint8_t ak8963_addr_start, uint8_t num_bytes, uint8_t *out)
+{
+    // enter read mode
+    enter_magnetometer_read_mode();
+    // go to the register where we start reading bytes from so that data will be available at external sensor data
+    IMU_write(I2C_SLV0_REG, ak8963_addr_start);
+    // configure to read `num_bytes` bytes
+    IMU_write(I2C_SLV0_CTRL, READ_FLAG | num_bytes);
+
+    // read the data:
+    read_bytes(EXT_SENS_DATA_00, num_bytes, out);
 }
 
 void setup_mpu9250()
@@ -132,6 +219,39 @@ void setup_accel()
     regval |= (~ACCEL_FCHOICE_BYTE); // set accel_fchoice_b to 1
     regval |= ACCEL_DLPF_BYTE;       // set accelerometer rate to 1kHz and bandwidth 41ish
     IMU_write(ACCEL_CONFIG2, regval);
+}
+
+void setup_magnetometer()
+{
+    // setup using the mpu9250 as master i2c reader
+    IMU_write(USER_CTRL, 0b00100000);    // enable I2C master mode
+    IMU_write(I2C_MST_CTRL, 0b00001101); // set I2C Master clock to 400kHz
+
+    // put AK8963 in I2C slv 0
+    enter_magnetometer_write_mode();
+
+    // setup AK8963
+    magnetometer_write(AK8963_CNTL, 0x00); // turn off magnetometer
+    delay_us(10);
+    magnetometer_write(AK8963_CNTL, 0x0F); // enter Fuse ROM access mode
+    delay_us(10);
+
+    // read bias factors
+    uint8_t raw_data[3];
+    magnetometer_read_bytes(AK8963_ASAX, 3, (uint8_t *)raw_data);
+    for (uint8_t i = 0; i < 3; ++i)
+    {
+        mag_bias_factory[i] = (float)(raw_data[0] - 128) / 256. + 1.;
+    }
+
+    // power down magnetometer again
+    enter_magnetometer_write_mode();
+    magnetometer_write(AK8963_CNTL, 0x00); // write the power-down byte
+    delay_us(10);
+
+    // go into continuous measurement @ 100Hz and use 16 bit values
+    magnetometer_write(AK8963_CNTL, MAGNETOMETER_CONFIG_BYTE);
+    delay_us(10);
 }
 
 void setupIMU()
@@ -218,43 +338,17 @@ void setupIMU()
 
 void readIMU()
 {
-    uint16_t magn_x, magn_y, magn_z;
-
+    int16_t magn_x, magn_y, magn_z;
     uint8_t buff[7];
-    int i;
 
     // ---------- accelerometer ----------
-    SPI3_CS0_PORT->BSRRH |= SPI3_CS0; // chip select low
-    SPI3_write(0x80 | MPU9250_ACCEL_START_REG);
-    for (i = 0; i < 6; ++i)
-        buff[i] = SPI3_write(0x00);
-    SPI3_CS0_PORT->BSRRL |= SPI3_CS0; // done with chip
-
-    // write to the buffer that the wombat uses
-    aTxBuffer[REG_RW_ACCEL_X_H] = buff[0];
-    aTxBuffer[REG_RW_ACCEL_X_L] = buff[1];
-    aTxBuffer[REG_RW_ACCEL_Y_H] = buff[2];
-    aTxBuffer[REG_RW_ACCEL_Y_L] = buff[3];
-    aTxBuffer[REG_RW_ACCEL_Z_H] = buff[4];
-    aTxBuffer[REG_RW_ACCEL_Z_L] = buff[5];
+    read_bytes(ACCEL_XOUT_H, 6, ((uint8_t *)aTxBuffer) + REG_RW_ACCEL_X_H);
 
     // need sleeps between reads/writes
     delay_us(100);
 
     // ---------- gyrometer ----------
-    SPI3_CS0_PORT->BSRRH |= SPI3_CS0; // chip select low
-    SPI3_write(0x80 | MPU9250_GYRO_START_REG);
-    for (i = 0; i < 6; ++i)
-        buff[i] = SPI3_write(0x00);
-    SPI3_CS0_PORT->BSRRL |= SPI3_CS0; // done with chip
-
-    // write to the buffer that the wombat uses
-    aTxBuffer[REG_RW_GYRO_X_H] = buff[0];
-    aTxBuffer[REG_RW_GYRO_X_L] = buff[1];
-    aTxBuffer[REG_RW_GYRO_Y_H] = buff[2];
-    aTxBuffer[REG_RW_GYRO_Y_L] = buff[3];
-    aTxBuffer[REG_RW_GYRO_Z_H] = buff[4];
-    aTxBuffer[REG_RW_GYRO_Z_L] = buff[5];
+    read_bytes(GYRO_XOUT_H, 6, ((uint8_t *)aTxBuffer) + REG_RW_GYRO_X_H);
 
     // need sleeps between reads/writes
     delay_us(100);
@@ -265,11 +359,11 @@ void readIMU()
     IMU_write(0x27, 0x80 | 0x07);
 
     // need sleeps between reads/writes
-    delay_us(1400); // total time for function = 2*100 + 3*100 + 1400 = 1900us = .0019ms
+    delay_us(2000); // total time for function = 2*100 + 3*100 + 1400 = 1900us = .0019ms
 
     SPI3_CS0_PORT->BSRRH |= SPI3_CS0; // chip select low
     SPI3_write(0x80 | MPU9250_EXT_SENS_DATA_00_REG);
-    for (i = 0; i < 7; ++i)
+    for (int i = 0; i < 7; ++i)
         buff[i] = SPI3_write(0x00);
     SPI3_CS0_PORT->BSRRL |= SPI3_CS0; // done with chip
 
