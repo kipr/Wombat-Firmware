@@ -338,7 +338,7 @@ void setupIMU()
 
 void readIMU()
 {
-    int16_t magn_x, magn_y, magn_z;
+    uint16_t magn_x, magn_y, magn_z;
     uint8_t buff[7];
 
     // ---------- accelerometer ----------
@@ -359,7 +359,7 @@ void readIMU()
     IMU_write(0x27, 0x80 | 0x07);
 
     // need sleeps between reads/writes
-    delay_us(2000); // total time for function = 2*100 + 3*100 + 1400 = 1900us = .0019ms
+    delay_us(2000);
 
     SPI3_CS0_PORT->BSRRH |= SPI3_CS0; // chip select low
     SPI3_write(0x80 | MPU9250_EXT_SENS_DATA_00_REG);
