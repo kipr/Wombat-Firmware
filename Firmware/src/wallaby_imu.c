@@ -1,5 +1,6 @@
 #include "wallaby_imu.h"
 #include "wallaby.h"
+#include "mpu9250regmap.h"
 
 #define WALLABY2
 
@@ -22,12 +23,16 @@
     they correspond to [250, 500, 1000, 2000]
 
     sensitivity value | gyroscope sensitivity | byte
-    0 | 250 | 0b00000
-    1 | 500 | 0b01000
-    2 | 1000 | 0b10000
-    3 | 2000 | 0b11000
+    0 | 250  | 0b00000000
+    1 | 500  | 0b00001000
+    2 | 1000 | 0b00010000
+    3 | 2000 | 0b00011000
 */
-#define GYRO_DEFAULT_SENSITIVITY_BYTE 0b00000
+#define GYRO_DEFAULT_SENSITIVITY_BYTE 0b00000000
+
+// when we invert this, we configure gyroscope to be at 1khz and bandwidth 41Hz
+#define GYRO_FCHOICE_BYTE 0b00000011
+
 /*
     The default sensitivity of the accelerometer
     valid values are 0, 1, 2, 3
@@ -41,8 +46,20 @@
 */
 #define ACCEL_DEFAULT_SENSITIVITY_BYTE 0b00000
 
+// when we invert this, we configure accelerometer to be at 1 khz  and bandwidth 44.8Hz
+#define ACCEL_FCHOICE_BYTE 0b00001000
+#define ACCEL_DLPF_BYTE 0b00000011
+
 float MAGN_SCALE_FACTORS[3] = {0.0f, 0.0f, 0.0f};
 
+/**
+ * @brief Write a byte to the given address. This doesn't
+ * take care of sleeping.
+ *
+ * @param address
+ * @param val
+ * @return uint8_t
+ */
 uint8_t IMU_write(uint8_t address, uint8_t val)
 {
     uint8_t ret;
@@ -50,10 +67,16 @@ uint8_t IMU_write(uint8_t address, uint8_t val)
     SPI3_write(address);
     ret = SPI3_write(val);
     SPI3_CS0_PORT->BSRRL |= SPI3_CS0; // done with chip
-    delay_us(100);                    // some sleep = necessary
     return ret;
 }
 
+/**
+ * @brief Read a byte from the given address. This doesn't
+ * take care of sleeping.
+ *
+ * @param address
+ * @return uint8_t
+ */
 uint8_t IMU_read(uint8_t address)
 {
     uint8_t ret;
@@ -61,136 +84,64 @@ uint8_t IMU_read(uint8_t address)
     SPI3_write(0x80 | address);
     ret = SPI3_write(0x00);
     SPI3_CS0_PORT->BSRRL |= SPI3_CS0; // done with chip
-    delay_us(100);                    // some sleep = necessary
     return ret;
 }
 
-// sensitivity byte processing
-uint8_t getSensitivityByte(uint8_t sensitivity)
+void setup_mpu9250()
 {
-    uint8_t sensitivity_byte = 0b11111111; // 0b11111111 is the flag for invalid sensitivity
-    switch (sensitivity)
-    {
-    case 0:
-    {
-        sensitivity_byte = 0b00000;
-        break;
-    }
-    case 1:
-    {
-        sensitivity_byte = 0b01000;
-        break;
-    }
-    case 2:
-    {
-        sensitivity_byte = 0b10000;
-        break;
-    }
-    case 3:
-    {
-        sensitivity_byte = 0b11000;
-        break;
-    }
-    }
-    return sensitivity_byte;
+    // reset device
+    IMU_write(PWR_MGMT_1, 0x80);
+    delay_us(100);
+
+    // wake up device
+    IMU_write(PWR_MGMT_1, 0x00);
+    delay_us(100);
+
+    // get stable time source
+    IMU_write(PWR_MGMT_1, 0x01);
+    delay_us(200);
+
+    // set SR to 200Hz rate
+    IMU_write(MPU_CONFIG, 0x03);
+    IMU_write(SMPLRT_DIV, 0x04);
 }
-uint8_t getGyroSensitivityByte(uint8_t sensitivity)
+
+void setup_gyro()
 {
-    uint8_t ret = getSensitivityByte(sensitivity);
-    return (ret != 0b11111111) ? ret : GYRO_DEFAULT_SENSITIVITY_BYTE;
+    uint8_t regval = IMU_read(GYRO_CONFIG);
+    regval &= ~0xE0;                         // clear self-test bits [7:5]
+    regval &= ~0x03;                         // clear fchoise [1:0]
+    regval &= ~0x18;                         // clear GYRO_FS_SEL bits [4:3]
+    regval |= GYRO_DEFAULT_SENSITIVITY_BYTE; // set sensitivity
+    regval |= (~GYRO_FCHOICE_BYTE);          // set fchoice
+    IMU_write(GYRO_CONFIG, regval);
 }
-uint8_t getAccelSensitivityByte(uint8_t sensitivity)
+
+void setup_accel()
 {
-    uint8_t ret = getSensitivityByte(sensitivity);
-    return (ret != 0b11111111) ? ret : ACCEL_DEFAULT_SENSITIVITY_BYTE;
-}
-uint8_t getSensitivityValue(uint8_t sensitivity_byte)
-{
-    uint8_t sensitivity = 0;
-    uint8_t modified_sensitivity_byte = sensitivity_byte & 0b00011000;
-    switch (modified_sensitivity_byte)
-    {
-    case 0b00000000:
-    {
-        sensitivity = 0;
-        break;
-    }
-    case 0b00001000:
-    {
-        sensitivity = 1;
-        break;
-    }
-    case 0b00010000:
-    {
-        sensitivity = 2;
-        break;
-    }
-    case 0b00011000:
-    {
-        sensitivity = 3;
-        break;
-    }
-    }
-    return sensitivity;
+    // accel sensitivity
+    uint8_t regval = IMU_read(ACCEL_CONFIG);
+    regval &= ~0xE0;                          // clear self-test bits [7:5]
+    regval &= ~0x18;                          // clear ACCEL_FS_SEL bits [4:3]
+    regval |= ACCEL_DEFAULT_SENSITIVITY_BYTE; // set sensitivity
+    IMU_write(ACCEL_CONFIG, regval);
+
+    // accel rate
+    regval = IMU_read(ACCEL_CONFIG2);
+    regval &= ~0x0F;                 // clear accel fchoice
+    regval |= (~ACCEL_FCHOICE_BYTE); // set accel_fchoice_b to 1
+    regval |= ACCEL_DLPF_BYTE;       // set accelerometer rate to 1kHz and bandwidth 41ish
+    IMU_write(ACCEL_CONFIG2, regval);
 }
 
 void setupIMU()
 {
-    debug_printf("inside setupIMU\r\n");
-    // select Accel/Mag
-    // SPI3_CS0_PORT->BSRRH |= SPI3_CS0; // chip select low
-    delay_us(200);
-
     uint8_t regval;
-
-    // request "Who am I"
-    regval = IMU_read(MPU9250_WHO_AMI_I_REG);
-
-    if (regval == MPU9250_WHO_AMI_I_RES)
-    { // mpu9250
-        debug_printf("IMU identified itself\r\n");
-    }
-    else
-    {
-        debug_printf("IMU did not respond/identify itself (regval=%d)\r\n", regval);
-        return;
-    }
-
-    //{0x80, MPUREG_PWR_MGMT_1},     // Reset Device
-    IMU_write(0x6B, 0x80);
-
-    // wake up
-    IMU_write(0x6B, 0x00); // power management 1, 50hz continuous, all axes
-    delay_us(100);
-
-    IMU_write(0x6B, 0x01); // power management 1, select time source
     delay_us(200);
 
-    IMU_write(MPU9250_CONFIG_REG, 0x03); // config gyro/accel sample rate 200Hz
-
-    IMU_write(0x19, 0x04); // samplerate div 200 Hz
-
-    // gyro config
-    regval = IMU_read(MPU9250_GYRO_CONFIG_REG);
-    regval &= (~0x3);  // clear fchoise
-    regval &= (~0x18); // clear afs
-
-    regval |= GYRO_DEFAULT_SENSITIVITY_BYTE; // (0x1 <, 3)
-    // aTxBuffer[REG_GYRO_SENSITIVITY] = getSensitivityValue(GYRO_DEFAULT_SENSITIVITY_BYTE);
-
-    // fchoice unchanged
-    debug_printf("gyro config = %x\r\n", regval);
-    IMU_write(MPU9250_GYRO_CONFIG_REG, regval);
-
-    // accel config
-    regval = IMU_read(MPU9250_ACCEL_CONFIG_REG);
-    regval &= (~0x18);                        // clear afs
-    regval |= ACCEL_DEFAULT_SENSITIVITY_BYTE; // (0x1 << 3);
-    // aTxBuffer[REG_ACCEL_SENSITIVITY] = getSensitivityValue(ACCEL_DEFAULT_SENSITIVITY_BYTE);
-
-    // fchoice unchanges
-    debug_printf("accel config = %x\r\n", regval);
-    IMU_write(MPU9250_ACCEL_CONFIG_REG, regval);
+    setup_mpu9250();
+    setup_gyro();
+    setup_accel();
 
     //
     // magnetometer config
