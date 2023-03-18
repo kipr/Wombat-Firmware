@@ -263,77 +263,7 @@ void setupIMU()
     setup_gyro();
     setup_accel();
 
-    //
-    // magnetometer config
-    // See https://developer.mbed.org/users/kylongmu/code/MPU9250_SPI/file/084e8ba240c1/MPU9250.cpp
-
-    //   {0x20, MPUREG_USER_CTRL},       // 0x6A =  0x20 I2C Master mode
-    IMU_write(0x6A, 0x20);
-    //   {0x0D, MPUREG_I2C_MST_CTRL}, //  0x24 = 0x0D I2C configuration multi-master  IIC 400KHz
-    IMU_write(0x24, 0x0D);
-    //    {AK8963_I2C_ADDR, MPUREG_I2C_SLV0_ADDR},  //0x25 = 0x0c  Set the I2C slave addres of AK8963 and set for write.
-    IMU_write(0x25, 0x0C);
-    //   {AK8963_CNTL2, MPUREG_I2C_SLV0_REG}, //0x26 =0x0B   I2C slave 0 register address from where to begin data transfer
-    IMU_write(0x26, 0x0B);
-    //    {0x01, MPUREG_I2C_SLV0_DO}, // 0x63 = 0x01 Reset AK8963
-    IMU_write(0x63, 0x01);
-    //    {0x81, MPUREG_I2C_SLV0_CTRL},  // 0x27 = 0x81 Enable I2C and set 1 byte
-    IMU_write(0x27, 0x81);
-
-    //    {AK8963_CNTL1, MPUREG_I2C_SLV0_REG}, //  0x26 = 0x0A I2C slave 0 register address from where to begin data transfer
-    IMU_write(0x26, 0x0A);
-    //    {0x12, MPUREG_I2C_SLV0_DO}, // 0x63 = 0x12 Register value to continuous measurement in 16bit
-    IMU_write(0x63, 0x12);
-    //    {0x81, MPUREG_I2C_SLV0_CTRL}  // 0x27 = 0x81 Enable I2C and set 1 byte
-    IMU_write(0x27, 0x81);
-
-    delay_us(1000);
-
-    // uint8_t response;
-    // WriteReg(MPUREG_I2C_SLV0_ADDR,AK8963_I2C_ADDR|READ_FLAG); //Set the I2C slave addres of AK8963 and set for read.
-    IMU_write(0x25, 0x0C | 0x80);
-    // WriteReg(MPUREG_I2C_SLV0_REG, AK8963_WIA); //I2C slave 0 register address from where to begin data transfer
-    IMU_write(0x26, 0x00);
-    // WriteReg(MPUREG_I2C_SLV0_CTRL, 0x81); //Read 1 byte from the magnetometer
-    IMU_write(0x27, 0x01 | 0x80);
-
-    delay_us(1000);
-
-    // wait(0.001);
-    // response=WriteReg(MPUREG_EXT_SENS_DATA_00|READ_FLAG, 0x00);    //Read I2C
-
-    // MPU9250_CONTROL1_REG set to 1 for continuous measurement mode 1
-    regval = IMU_read(MPU9250_EXT_SENS_DATA_00_REG);
-    uint8_t magn_expected_id = 0x48;
-    if (regval != magn_expected_id)
-    {
-        debug_printf("MAGN who am i?: result %d should be %d\n", regval, magn_expected_id);
-        return;
-    }
-
-    // calibrate magnetometer
-    // WriteReg(MPUREG_I2C_SLV0_ADDR,AK8963_I2C_ADDR|READ_FLAG); //Set the I2C slave addres of AK8963 and set for read.
-    IMU_write(0x25, 0x0C | 0x80);
-    // WriteReg(MPUREG_I2C_SLV0_REG, AK8963_ASAX); //I2C slave 0 register address from where to begin data transfer
-    IMU_write(0x26, 0x10);
-    // WriteReg(MPUREG_I2C_SLV0_CTRL, 0x83); //Read 3 bytes from the magnetometer
-    IMU_write(0x27, 0x03 | 0x80);
-
-    // WriteReg(MPUREG_I2C_SLV0_CTRL, 0x81);    //Enable I2C and set bytes
-    delay_us(1000);
-    // ReadRegs(MPUREG_EXT_SENS_DATA_00,response,3);
-    // uint8_t buff[3]; // unused variable
-    SPI3_CS0_PORT->BSRRH |= SPI3_CS0; // chip select low
-    SPI3_write(0x80 | MPU9250_EXT_SENS_DATA_00_REG);
-    uint8_t i;
-    for (i = 0; i < 3; ++i)
-    {
-        regval = SPI3_write(0x00);
-        int16_t mag = (int16_t)regval;
-        float fmag = ((float)mag - 128.0f) / 256.0f + 1.0f;
-        MAGN_SCALE_FACTORS[i] = fmag * MPU9250_MAGN_SENS_SCALING;
-    }
-    SPI3_CS0_PORT->BSRRL |= SPI3_CS0; // done with chip
+    setup_magnetometer();
 }
 
 void readIMU()
