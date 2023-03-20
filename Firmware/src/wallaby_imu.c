@@ -63,10 +63,15 @@
 //      value of 0 = 14 bits
 //      value of 1 = 16 bits
 #define MAGNETOMETER_CONFIG_BYTE 0b00010110
+
+/**
+ * This is the flag used by SPI to indicate
+ * that the transfer is a read and not a write
+ *
+ */
 #define READ_FLAG 0b10000000
 
-float MAGN_SCALE_FACTORS[3] = {0.0f, 0.0f, 0.0f};
-float mag_bias_factory[3] = {.0f, .0f, .0f};
+float magn_scale_factors[3] = {0.0f, 0.0f, 0.0f};
 
 /**
  * @brief Write a byte to the given address. This doesn't
@@ -98,7 +103,7 @@ uint8_t IMU_read(uint8_t address)
 {
     uint8_t ret;
     SPI3_CS0_PORT->BSRRH |= SPI3_CS0; // chip select low
-    SPI3_write(0x80 | address);
+    SPI3_write(READ_FLAG | address);
     ret = SPI3_write(0x00);
     SPI3_CS0_PORT->BSRRL |= SPI3_CS0; // done with chip
     return ret;
@@ -241,7 +246,9 @@ void setup_magnetometer()
     magnetometer_read_bytes(AK8963_ASAX, 3, (uint8_t *)raw_data);
     for (uint8_t i = 0; i < 3; ++i)
     {
-        mag_bias_factory[i] = (float)(raw_data[0] - 128) / 256. + 1.;
+        // according to the datasheet, multiply this by the read magnetometer
+        // data to get the adjusted data
+        magn_scale_factors[i] = (float)(raw_data[0] - 128) / 256. + 1.;
     }
 
     // power down magnetometer again
@@ -256,7 +263,6 @@ void setup_magnetometer()
 
 void setupIMU()
 {
-    uint8_t regval;
     delay_us(200);
 
     setup_mpu9250();
@@ -266,46 +272,37 @@ void setupIMU()
     setup_magnetometer();
 }
 
-void readIMU()
+void readIMU(uint32_t count)
 {
-    uint16_t magn_x, magn_y, magn_z;
-    uint8_t buff[7];
+    if (count % 10 == 0)
+    {
+        // ---------- accelerometer ----------
+        read_bytes(ACCEL_XOUT_H, 6, ((uint8_t *)aTxBuffer) + REG_RW_ACCEL_X_H);
 
-    // ---------- accelerometer ----------
-    read_bytes(ACCEL_XOUT_H, 6, ((uint8_t *)aTxBuffer) + REG_RW_ACCEL_X_H);
+        // need sleeps between reads/writes
+        delay_us(10);
 
-    // need sleeps between reads/writes
-    delay_us(100);
+        // ---------- gyrometer ----------
+        read_bytes(GYRO_XOUT_H, 6, ((uint8_t *)aTxBuffer) + REG_RW_GYRO_X_H);
 
-    // ---------- gyrometer ----------
-    read_bytes(GYRO_XOUT_H, 6, ((uint8_t *)aTxBuffer) + REG_RW_GYRO_X_H);
+        // need sleeps between reads/writes
+        delay_us(10);
+    }
+    if (count % 20 == 0)
+    {
+        // ---------- magnetometer ----------
+        uint8_t buff[7];
+        // ignore reading from data status 1 since, during testing, it didn't respond
+        magnetometer_read_bytes(AK8963_XOUT_L, 7, buff); // read magneto data and data status 2
 
-    // need sleeps between reads/writes
-    delay_us(100);
-
-    // read from magnetometer
-    IMU_write(0x25, 0x0C | 0x80);
-    IMU_write(0x26, 0x03);
-    IMU_write(0x27, 0x80 | 0x07);
-
-    // need sleeps between reads/writes
-    delay_us(2000);
-
-    SPI3_CS0_PORT->BSRRH |= SPI3_CS0; // chip select low
-    SPI3_write(0x80 | MPU9250_EXT_SENS_DATA_00_REG);
-    for (int i = 0; i < 7; ++i)
-        buff[i] = SPI3_write(0x00);
-    SPI3_CS0_PORT->BSRRL |= SPI3_CS0; // done with chip
-
-    magn_x = (((uint16_t)buff[1]) << 8) | buff[0];
-    magn_y = (((uint16_t)buff[3]) << 8) | buff[2];
-    magn_z = (((uint16_t)buff[5]) << 8) | buff[4];
-
-    // TODO: already have these in buff
-    aTxBuffer[REG_RW_MAG_X_H] = (magn_x & 0xFF00) >> 8;
-    aTxBuffer[REG_RW_MAG_X_L] = (magn_x & 0x00FF);
-    aTxBuffer[REG_RW_MAG_Y_H] = (magn_y & 0xFF00) >> 8;
-    aTxBuffer[REG_RW_MAG_Y_L] = (magn_y & 0x00FF);
-    aTxBuffer[REG_RW_MAG_Z_H] = (magn_z & 0xFF00) >> 8;
-    aTxBuffer[REG_RW_MAG_Z_L] = (magn_z & 0x00FF);
+        // data is in little endian (little byte, then big byte)
+        // so we have to swap the order (put it in big
+        // endian form) before putting it in buffer
+        aTxBuffer[REG_RW_MAG_X_H] = buff[1];
+        aTxBuffer[REG_RW_MAG_X_L] = buff[0];
+        aTxBuffer[REG_RW_MAG_Y_H] = buff[3];
+        aTxBuffer[REG_RW_MAG_Y_L] = buff[2];
+        aTxBuffer[REG_RW_MAG_Z_H] = buff[5];
+        aTxBuffer[REG_RW_MAG_Z_L] = buff[4];
+    }
 }
