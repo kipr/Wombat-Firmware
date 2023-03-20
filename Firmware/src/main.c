@@ -46,7 +46,7 @@ int main()
 
     // Loop until button is pressed
     uint32_t count = 0;
-    while (1)
+    while (1) // about 922 us (.000922 seconds) per loop
     {
         count += 1;
         {
@@ -70,13 +70,8 @@ int main()
             uint32_t before = usCount;
             update_dig_pins();
             int16_t batt = adc_update();
-            // readAccel();
-            // readMag();
-            // readGyro();
-            if (count % 10 == 0)
-            {
-                readIMU();
-            }
+
+            readIMU(count);
 
             if (batt < 636) // about 5.75 volts
             {
@@ -142,8 +137,6 @@ int main()
                 // sleep a bit so that our time through the loop is consistent for PID control
                 delay_us(222);
             }
-
-            // aTxBuffer[REG_RW_MOT_SRV_ALLSTOP] = 0;//FIXME: remove
         }
     }
 
