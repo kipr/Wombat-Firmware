@@ -47,9 +47,9 @@
 */
 #define ACCEL_DEFAULT_SENSITIVITY_BYTE 0b00000
 
-// when we invert this, we configure accelerometer to be at 1 khz  and bandwidth 44.8Hz
+// when we invert this, we configure accelerometer to be at 1 khz and bandwidth 218.1Hz
 #define ACCEL_FCHOICE_BYTE 0b00001000
-#define ACCEL_DLPF_BYTE 0b00000011
+#define ACCEL_DLPF_BYTE 0b00000001
 
 // modes are determined by bytes 0-3
 //  0000 = power down
@@ -207,6 +207,7 @@ void setup_gyro()
     regval |= GYRO_DEFAULT_SENSITIVITY_BYTE; // set sensitivity
     regval |= (~GYRO_FCHOICE_BYTE);          // set fchoice
     IMU_write(GYRO_CONFIG, regval);
+    delay_us(100); // need this sleep to finalize write
 }
 
 void setup_accel()
@@ -217,13 +218,15 @@ void setup_accel()
     regval &= ~0x18;                          // clear ACCEL_FS_SEL bits [4:3]
     regval |= ACCEL_DEFAULT_SENSITIVITY_BYTE; // set sensitivity
     IMU_write(ACCEL_CONFIG, regval);
+    delay_us(100); // need this sleep to finalize write
 
     // accel rate
     regval = IMU_read(ACCEL_CONFIG2);
     regval &= ~0x0F;                 // clear accel fchoice
     regval |= (~ACCEL_FCHOICE_BYTE); // set accel_fchoice_b to 1
-    regval |= ACCEL_DLPF_BYTE;       // set accelerometer rate to 1kHz and bandwidth 41ish
+    regval |= ACCEL_DLPF_BYTE;       // set accelerometer rate to 1kHz and bandwidth 218.1
     IMU_write(ACCEL_CONFIG2, regval);
+    delay_us(100); // need this sleep to finalize write
 }
 
 void setup_magnetometer()
@@ -263,32 +266,41 @@ void setup_magnetometer()
 
 void setupIMU()
 {
-    delay_us(200);
+    delay_us(200); // wait a little before starting
 
     setup_mpu9250();
+    delay_us(200); // these sleeps are necessary in between setting values
+
     setup_gyro();
+    delay_us(200); // these sleeps are necessary in between setting values
+
     setup_accel();
+    delay_us(200); // these sleeps are necessary in between setting values
 
     setup_magnetometer();
+    delay_us(200); // wait a little before exiting
 }
 
 void readIMU(uint32_t count)
 {
-    if (count % 10 == 0)
+    const uint8_t accel_gyro_update_mod = 10; // at about 200 hz
+    const uint8_t magneto_update_mod = 20;    // at about 100 hz
+
+    if (count % accel_gyro_update_mod == 0)
     {
         // ---------- accelerometer ----------
         read_bytes(ACCEL_XOUT_H, 6, ((uint8_t *)aTxBuffer) + REG_RW_ACCEL_X_H);
 
-        // need sleeps between reads/writes
-        delay_us(10);
+        // according to datasheet, need 1.88 ms in total to finalize data for accel
+        delay_us(1880);
 
         // ---------- gyrometer ----------
         read_bytes(GYRO_XOUT_H, 6, ((uint8_t *)aTxBuffer) + REG_RW_GYRO_X_H);
 
-        // need sleeps between reads/writes
-        delay_us(10);
+        // we give it a little more just in case
+        delay_us(100);
     }
-    if (count % 20 == 0)
+    if (count % magneto_update_mod == 0)
     {
         // ---------- magnetometer ----------
         uint8_t buff[7];
