@@ -47,10 +47,6 @@
 */
 #define ACCEL_DEFAULT_SENSITIVITY_BYTE 0b00000
 
-// when we invert this, we configure accelerometer to be at 1 khz and bandwidth 218.1Hz
-#define ACCEL_FCHOICE_BYTE 0b00001000
-#define ACCEL_DLPF_BYTE 0b00000001
-
 // modes are determined by bytes 0-3
 //  0000 = power down
 //  0001 = single measurement
@@ -201,13 +197,11 @@ void setup_mpu9250()
 void setup_gyro()
 {
     uint8_t regval = IMU_read(GYRO_CONFIG);
-    regval &= ~0xE0;                         // clear self-test bits [7:5]
     regval &= ~0x03;                         // clear fchoise [1:0]
     regval &= ~0x18;                         // clear GYRO_FS_SEL bits [4:3]
     regval |= GYRO_DEFAULT_SENSITIVITY_BYTE; // set sensitivity
     regval |= (~GYRO_FCHOICE_BYTE);          // set fchoice
     IMU_write(GYRO_CONFIG, regval);
-    delay_us(100); // need this sleep to finalize write
 }
 
 void setup_accel()
@@ -218,15 +212,6 @@ void setup_accel()
     regval &= ~0x18;                          // clear ACCEL_FS_SEL bits [4:3]
     regval |= ACCEL_DEFAULT_SENSITIVITY_BYTE; // set sensitivity
     IMU_write(ACCEL_CONFIG, regval);
-    delay_us(100); // need this sleep to finalize write
-
-    // accel rate
-    regval = IMU_read(ACCEL_CONFIG2);
-    regval &= ~0x0F;                 // clear accel fchoice
-    regval |= (~ACCEL_FCHOICE_BYTE); // set accel_fchoice_b to 1
-    regval |= ACCEL_DLPF_BYTE;       // set accelerometer rate to 1kHz and bandwidth 218.1
-    IMU_write(ACCEL_CONFIG2, regval);
-    delay_us(100); // need this sleep to finalize write
 }
 
 void setup_magnetometer()
@@ -268,16 +253,14 @@ void setupIMU()
 {
     delay_us(200); // wait a little before starting
 
+    // setup mpu9250 devices
     setup_mpu9250();
-    delay_us(200); // these sleeps are necessary in between setting values
-
     setup_gyro();
-    delay_us(200); // these sleeps are necessary in between setting values
-
     setup_accel();
-    delay_us(200); // these sleeps are necessary in between setting values
 
+    delay_us(200); // necessary wait before setting up the AK8963 (magnetometer)
     setup_magnetometer();
+
     delay_us(200); // wait a little before exiting
 }
 
