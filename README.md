@@ -45,6 +45,16 @@ The build folder will be created during runtime.
 > sudo build.sh
 
 
+## Deploy directly to the Wombat
+
+> sudo deploy.sh
+
+This will build the firmware and deploy it to the Wombat.
+It will also flash the firmware to the Wombat.
+The variables in the script have to be set individually for each device.
+If you want to change them, you can do so in the script.
+
+
 ### Author(s): 
  
 Joshua Southerland (2015)
@@ -55,6 +65,7 @@ Zachary Sasser (2019)
 #### Contributors:
  
 Konstantin Lampalzer (2020) - Added Docker Support
+Tobias Madlberger (2025) - Fixed IMU
 
 Want to Contribute? Start Here!:
 https://github.com/kipr/KIPR-Development-Toolkit

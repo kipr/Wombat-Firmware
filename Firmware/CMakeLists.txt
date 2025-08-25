@@ -38,7 +38,7 @@ target_compile_options(${elf_file} PRIVATE ${additional_compiler_flags})
 target_link_libraries(${elf_file} PRIVATE ${additional_linker_flags})
 
 # remove unused sections
-target_link_libraries(${elf_file} PUBLIC "-g -Wl,--gc-sections")
+target_link_libraries(${elf_file} PUBLIC "-g -Wl,--gc-sections -lm")
 
 # link with linker file
 target_link_libraries(${elf_file} PUBLIC -T${LINKER_SCRIPT})

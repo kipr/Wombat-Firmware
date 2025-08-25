@@ -44,8 +44,6 @@ int main()
     //debug_printf("starting\n");
     int low_volt_alarmed = 0;
 
-    setupIMU();
-    
     // Loop until button is pressed
     uint32_t count = 0;
     while (1)
@@ -72,10 +70,8 @@ int main()
             uint32_t before = usCount;
             update_dig_pins();
             int16_t batt = adc_update();
-            //readAccel();
-            //readMag();
-            //readGyro();   
-            if(count%1000==0)readIMU();
+
+            readIMU();
 
             if (batt < 636) // about 5.75 volts
             {

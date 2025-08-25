@@ -1,3 +1,8 @@
+/*
+*  Modified by: Tobias Madlberger*, Marc Prantl, Matthias, 2025
+*  * Corresponding author's email: tobias.madlberger@gmail.com
+*/
+
 // use a board definition file
 // makes it easier to switch things like processor model, board revision, etc 
 #include "wallaby_r2.h"
@@ -47,6 +52,7 @@ extern volatile uint8_t dig_dirty;
 
 extern volatile uint32_t usCount;
 
+void pack_float(uint8_t reg, float value);
 
 void initSystick();
 

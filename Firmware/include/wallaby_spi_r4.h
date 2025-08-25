@@ -4,7 +4,6 @@
 #define WALLABY_SPI_R1_H_
 
 
-
 #define WALLABY_SPI_VERSION 4
 
 // READ Only Registers ---------------------------------------------------------
@@ -12,7 +11,6 @@
 
 #define REG_R_VERSION_H      1
 #define REG_R_VERSION_L      2
-
 
 
 // READ/Write Registers --------------------------------------------------------
@@ -40,26 +38,29 @@
 #define REG_RW_ADC_5_L     22
 #define REG_RW_ADC_PE      23 // low 6 bits used
 
-#define REG_RW_MAG_X_H     24
-#define REG_RW_MAG_X_L     25
-#define REG_RW_MAG_Y_H     26
-#define REG_RW_MAG_Y_L     27
-#define REG_RW_MAG_Z_H     28
-#define REG_RW_MAG_Z_L     29
+// Magnetometer (Float Values)
+#define REG_RW_MAG_X_0    24
+#define REG_RW_MAG_X_1    25
+#define REG_RW_MAG_X_2    26
+#define REG_RW_MAG_X_3    27
 
-#define REG_RW_ACCEL_X_H   30
-#define REG_RW_ACCEL_X_L   31
-#define REG_RW_ACCEL_Y_H   32
-#define REG_RW_ACCEL_Y_L   33
-#define REG_RW_ACCEL_Z_H   34
-#define REG_RW_ACCEL_Z_L   35
+#define REG_RW_MAG_Y_0    28
+#define REG_RW_MAG_Y_1    29
+#define REG_RW_MAG_Y_2    30
+#define REG_RW_MAG_Y_3    31
 
-#define REG_RW_GYRO_X_H    36
-#define REG_RW_GYRO_X_L    37
-#define REG_RW_GYRO_Y_H    38
-#define REG_RW_GYRO_Y_L    39
-#define REG_RW_GYRO_Z_H    40
-#define REG_RW_GYRO_Z_L    41
+#define REG_RW_MAG_Z_0    32
+#define REG_RW_MAG_Z_1    33
+#define REG_RW_MAG_Z_2    34
+#define REG_RW_MAG_Z_3    35
+
+// Accelerometer (Float Values)
+#define REG_RW_ACCEL_X_0   36
+#define REG_RW_ACCEL_X_1   37
+#define REG_RW_ACCEL_X_2   38
+#define REG_RW_ACCEL_X_3   39
+
+// Only left 3 bytes available - Gyro / Accel is way back --> This is for compatibility with botui
 
 // Motor 0 position
 #define REG_RW_MOT_0_B3    42
@@ -132,7 +133,6 @@
 #define REG_RW_BUTTONS 88
 
 #define REG_READABLE_COUNT 89
-
 
 
 // WRITE ONLY Registers---------------------------------------------------------
@@ -210,7 +210,36 @@
 #define REG_W_MOT_3_GOAL_B1    151
 #define REG_W_MOT_3_GOAL_B0    152
 
-#define REG_ALL_COUNT      153
+// Accel continuation
+
+#define REG_RW_ACCEL_Y_0   153
+#define REG_RW_ACCEL_Y_1   154
+#define REG_RW_ACCEL_Y_2   155
+#define REG_RW_ACCEL_Y_3   156
+
+#define REG_RW_ACCEL_Z_0   157
+#define REG_RW_ACCEL_Z_1   158
+#define REG_RW_ACCEL_Z_2   159
+#define REG_RW_ACCEL_Z_3   160
+
+// Gyroscope (Float Values)
+#define REG_RW_GYRO_X_0    161
+#define REG_RW_GYRO_X_1    162
+#define REG_RW_GYRO_X_2    163
+#define REG_RW_GYRO_X_3    164
+
+#define REG_RW_GYRO_Y_0    165
+#define REG_RW_GYRO_Y_1    166
+#define REG_RW_GYRO_Y_2    167
+#define REG_RW_GYRO_Y_3    168
+
+#define REG_RW_GYRO_Z_0    169
+#define REG_RW_GYRO_Z_1    170
+#define REG_RW_GYRO_Z_2    171
+#define REG_RW_GYRO_Z_3    172
+
+
+#define REG_ALL_COUNT      173
 
 
 #endif // #defineWALLABY_SPI_R1_H_

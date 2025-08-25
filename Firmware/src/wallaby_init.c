@@ -1,3 +1,8 @@
+/*
+*  Modified by: Tobias Madlberger*, Marc Prantl, Matthias, 2025
+*  * Corresponding author's email: tobias.madlberger@gmail.com
+*/
+
 #include "wallaby_init.h"
 #include "wallaby.h"
 
@@ -10,29 +15,27 @@ void init180MHz()
     // Enable HSE
     RCC_HSEConfig(RCC_HSE_ON);
     //RCC_HSEConfig(RCC_HSE_Bypass);
-    while(RCC_WaitForHSEStartUp() != SUCCESS);
+    while (RCC_WaitForHSEStartUp() != SUCCESS);
 
     FLASH_PrefetchBufferCmd(ENABLE);
     FLASH_SetLatency(FLASH_Latency_5);
 
-    RCC_HCLKConfig(RCC_SYSCLK_Div1); 
+    RCC_HCLKConfig(RCC_SYSCLK_Div1);
     RCC_PCLK1Config(RCC_HCLK_Div4);
-    RCC_PCLK2Config(RCC_HCLK_Div2); 
+    RCC_PCLK2Config(RCC_HCLK_Div2);
 
-    uint32_t PLL_M = 24;  // ( (24 MHz / 24) * 360 ) / 2 = 180 MHz
+    uint32_t PLL_M = 24; // ( (24 MHz / 24) * 360 ) / 2 = 180 MHz
     uint32_t PLL_N = 360;
     uint32_t PLL_P = 2;
     uint32_t PLL_Q = 7;
 
-    RCC_PLLConfig(RCC_PLLSource_HSE,PLL_M,PLL_N,PLL_P,PLL_Q);
+    RCC_PLLConfig(RCC_PLLSource_HSE, PLL_M, PLL_N, PLL_P, PLL_Q);
     RCC_PLLCmd(ENABLE);
     RCC_SYSCLKConfig(RCC_SYSCLKSource_PLLCLK);
 
     // Wait till PLL is used as system clock source
-    while(RCC_GetSYSCLKSource() != 0x08);
+    while (RCC_GetSYSCLKSource() != 0x08);
 }
-
-
 
 
 void init()
@@ -53,7 +56,7 @@ void init()
 
 
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2, ENABLE);
-    RCC_APB1PeriphClockCmd(RCC_AHB1Periph_DMA1 , ENABLE);
+    RCC_APB1PeriphClockCmd(RCC_AHB1Periph_DMA1, ENABLE);
 
     // TIM1,8 for Motors
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
@@ -67,7 +70,7 @@ void init()
 
     // Slave board configuration
     // Initializes the SPI communication
-    
+
     //SPI_InitTypeDef  SPI_InitStructure;
     //SPI_InitStructure.SPI_Mode = SPI_Mode_Slave;
     //SPI_Init(SPI2, &SPI_InitStructure);
@@ -76,10 +79,10 @@ void init()
     DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, ENABLE);
 
     // Enable DMA SPI TX Stream 
-    DMA_Cmd(DMA1_Stream4,ENABLE);
+    DMA_Cmd(DMA1_Stream4, ENABLE);
 
     // Enable DMA SPI RX Stream 
-    DMA_Cmd(DMA1_Stream3,ENABLE); 
+    DMA_Cmd(DMA1_Stream3, ENABLE);
 
     {
         NVIC_InitTypeDef NVIC_InitStructure;
@@ -90,7 +93,7 @@ void init()
         NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
         NVIC_Init(&NVIC_InitStructure);
     }
-        {
+    {
         NVIC_InitTypeDef NVIC_InitStructure;
         // Enable the TIM1 gloabal Interrupt
         NVIC_InitStructure.NVIC_IRQChannel = DMA1_Stream4_IRQn;
@@ -208,7 +211,7 @@ void init()
         GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
         GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
         GPIO_Init(SRV1_PWM_PORT, &GPIO_InitStructure);
-        
+
         GPIO_PinAFConfig(SRV1_PWM_PORT, SRV1_PWM_PinSource, GPIO_AF_TIM3);
     }
 
@@ -232,10 +235,10 @@ void init()
         GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
         GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
         GPIO_Init(SRV3_PWM_PORT, &GPIO_InitStructure);
-        
+
         GPIO_PinAFConfig(SRV3_PWM_PORT, SRV3_PWM_PinSource, GPIO_AF_TIM9);
     }
-    
+
     TIM1_Configuration(); // motors 0,1,2
 
     // TODO move tim1 interrupt setup for motor control
@@ -250,7 +253,7 @@ void init()
     }
 
     TIM8_Configuration(); // motor 3
-    
+
     // TODO move tim8 interrupt setup for motor control
     {
         NVIC_InitTypeDef NVIC_InitStructure;
@@ -260,10 +263,10 @@ void init()
         NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
         NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
         NVIC_Init(&NVIC_InitStructure);
-    }    
+    }
 
     TIM3_Configuration(); // servos 0,1
-        // TODO move tim3 interrupt setup for servo control
+    // TODO move tim3 interrupt setup for servo control
     {
         NVIC_InitTypeDef NVIC_InitStructure;
         // Enable the TIM3 gloabal Interrupt
@@ -276,7 +279,7 @@ void init()
 
     TIM9_Configuration(); // servos 2,3
 
-        // TODO move tim9 interrupt setup for servo control
+    // TODO move tim9 interrupt setup for servo control
     {
         NVIC_InitTypeDef NVIC_InitStructure;
         // Enable the TIM9 gloabal Interrupt
@@ -288,19 +291,18 @@ void init()
     }
 
 
-
     // Button S1 is also a digital in
     // TODO: make this another digital pin
     configDigitalInPin(BUTTON_S1_PIN, BUTTON_S1_PORT);
 
     // Init SPI3 (plus chip selects) for the IMU sensors
-    initSPI3(); 
+    initSPI3();
 
     // Init SPI4 (SPI header)
     //initSPI4(); 
- 
+
     //setup_I2C1();
-   
+
     // wait a bit
     delay_us(5000);
 
@@ -309,10 +311,10 @@ void init()
     //setupGyro();
     debug_printf("calling setupIMU()\r\n");
     setupIMU();
-/*
-    setupUART2();
-    setupUART3();
-*/
+    /*
+        setupUART2();
+        setupUART3();
+    */
     // wait a bit
     delay_us(5);
 }

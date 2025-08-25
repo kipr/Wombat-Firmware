@@ -1,12 +1,9 @@
-#include "stm32f4xx.h"
+/*
+*  Modified by: Tobias Madlberger*, Marc Prantl, Matthias, 2025
+*  * Corresponding author's email: tobias.madlberger@gmail.com
+*/
+
+#pragma once
 
 void setupIMU();
 void readIMU();
-
-void setupAccelMag();
-void setupGyro();
-
-void readAccel();
-void readMag();
-void readGyro();
-
