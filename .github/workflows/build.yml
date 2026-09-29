@@ -1,0 +1,38 @@
+name: Build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  firmware:
+    name: Build firmware
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      # The same command contributors run locally, so CI and local builds match.
+      - name: Build in Docker
+        run: |
+          docker compose build
+          docker compose run --rm build-wombat-firmware
+
+      - name: Upload wombat.bin
+        uses: actions/upload-artifact@v7
+        with:
+          name: wombat-firmware
+          path: build/Firmware/wombat.bin
+          if-no-files-found: error
+
+  register-map:
+    name: Register map matches libwallaby
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Compare with libwallaby master
+        run: scripts/check-register-map.sh
