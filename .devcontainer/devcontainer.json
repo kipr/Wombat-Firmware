@@ -1,5 +1,5 @@
 {
-  "name": "pcompiler Dev",
+  "name": "Wombat Firmware Dev",
   "build": {
     "dockerfile": "../Dockerfile",
     "context": "../",
