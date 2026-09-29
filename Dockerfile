@@ -25,8 +25,7 @@ CMD ["bash", "build.sh"]
 
 FROM firmware-base AS devcontainer
 
-RUN dpkg --add-architecture arm64 \
-    && apt-get update \
+RUN apt-get update \
     && apt-get install -y \
         curl \
         fd-find \
@@ -38,9 +37,6 @@ RUN dpkg --add-architecture arm64 \
         ripgrep \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-
-RUN groupadd --gid 1000 code \
-    && useradd --uid 1000 --gid 1000 --create-home --shell /bin/bash code
 
 # Final stage is default, so compose-based build is unaffected
 FROM firmware-base AS firmware

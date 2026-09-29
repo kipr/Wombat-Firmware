@@ -24,7 +24,7 @@
   },
   "initializeCommand": "mkdir -p \"$HOME/.config/codex\"",
   "mounts": [
-    "source=${localEnv:HOME}/.config/codex,target=/home/code/.codex,type=bind,consistency=cached"
+    "source=${localEnv:HOME}/.config/codex,target=/home/ubuntu/.codex,type=bind,consistency=cached"
   ],
-  "remoteUser": "code"
+  "remoteUser": "1000"
 }
