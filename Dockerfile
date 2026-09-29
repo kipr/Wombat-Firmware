@@ -1,6 +1,6 @@
 # Pinned so the toolchain doesn't change underneath the build. Newer images ship
 # CMake 4, which rejects this project's cmake_minimum_required(VERSION 2.8.12).
-FROM ubuntu:24.04
+FROM ubuntu:24.04 AS firmware-base
 
 ENV TZ=America/Chicago
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
@@ -16,8 +16,27 @@ RUN apt-get update && \
     gcc-arm-none-eabi \
     wget \
     unzip && \
-    apt-get clean
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /home/dev/Wombat-Firmware
 
 CMD ["bash", "build.sh"]
+
+FROM firmware-base AS devcontainer
+
+RUN apt-get update \
+    && apt-get install -y \
+        curl \
+        fd-find \
+        file \
+        fish \
+        fzf \
+        git \
+        gnupg \
+        ripgrep \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Final stage is default, so compose-based build is unaffected
+FROM firmware-base AS firmware

@@ -19,6 +19,10 @@ set(APPLICATION_NAME "wombat")
 
 project (${APPLICATION_NAME} C CXX ASM)
 
+# Let editor tooling (for example, VS Code's C/C++ extension) use the same
+# compiler flags, include paths, and definitions as the firmware build.
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # STM32-specific settings
 set(DEVICE_FAMILY STM32F427_437xx)
 set(STM32_PLATFORM "STM32F427xx" CACHE STRING "Target microprocessor platform")
