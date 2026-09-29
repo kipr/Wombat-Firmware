@@ -8,12 +8,10 @@ This project provides firmware for the STM32F427VIT6 Microcontroller on the Womb
 
 It is currently under active development by KIPR.
 
-Open Source build provided with lots of :coffee: by [HTL Wiener Neustadt](https://robo4you.at/)
-
 # Structure
 
 * build
-    * This folder contains the output wallaby.bin file, which can be flashed onto the microcontroller.
+    * This folder contains the output wombat.bin file, which can be flashed onto the microcontroller.
 * CMake
     * Toolchain file, to compile the firmare using arm-gcc
 * docs
@@ -27,15 +25,11 @@ Open Source build provided with lots of :coffee: by [HTL Wiener Neustadt](https:
 
 ## Run/Build with Docker
 
-> sudo service docker stop
+> docker compose build
 
-> sudo service docker start
+> docker compose run --rm build-wombat-firmware
 
-> sudo docker-compose up --build
-
-This will execute all the builds and output the binary file into the build folder.
-
-The build folder will be created during runtime.
+This builds the firmware and writes wombat.bin to build/Firmware/. Use `run` rather than `up`: `up` reports success even when the build fails.
 
 
 ## Run/Build Directly
@@ -54,7 +48,9 @@ Zachary Sasser (2019)
 
 #### Contributors:
  
-Konstantin Lampalzer (2020) - Added Docker Support
+Konstantin Lampalzer, [HTL Wiener Neustadt](https://robo4you.at/) (2020) - Added the open-source CMake build and Docker support
 
 Want to Contribute? Start Here!:
 https://github.com/kipr/KIPR-Development-Toolkit
+
+Then read [CONTRIBUTING.md](CONTRIBUTING.md) for how we work, including with AI coding agents.
