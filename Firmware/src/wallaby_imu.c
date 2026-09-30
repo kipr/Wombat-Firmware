@@ -102,6 +102,7 @@ uint8_t IMU_read(uint8_t address)
     SPI3_write(READ_FLAG | address);
     ret = SPI3_write(0x00);
     SPI3_CS0_PORT->BSRRL |= SPI3_CS0; // done with chip
+    delay_us(10); // CS must stay high long enough for the MPU to end the transaction
     return ret;
 }
 
@@ -153,6 +154,7 @@ void read_bytes(uint8_t reg_start, uint8_t num_bytes, uint8_t *out)
         out[i] = SPI3_write(0x00); // write null byte to request data
     }
     SPI3_CS0_PORT->BSRRL |= SPI3_CS0;
+    delay_us(10); // CS must stay high long enough for the MPU to end the transaction
 }
 
 /**
