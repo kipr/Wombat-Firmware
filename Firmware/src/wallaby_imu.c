@@ -181,7 +181,7 @@ void setup_mpu9250()
 {
     // reset device
     IMU_write(PWR_MGMT_1, 0x80);
-    delay_us(100);
+    delay_us(100000); // writes are dropped until the reset completes (up to 100 ms)
 
     // wake up device
     IMU_write(PWR_MGMT_1, 0x00);
