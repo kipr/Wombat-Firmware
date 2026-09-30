@@ -202,7 +202,7 @@ void setup_gyro()
     regval &= ~0x03;                         // clear fchoise [1:0]
     regval &= ~0x18;                         // clear GYRO_FS_SEL bits [4:3]
     regval |= GYRO_DEFAULT_SENSITIVITY_BYTE; // set sensitivity
-    regval |= (~GYRO_FCHOICE_BYTE);          // set fchoice
+    regval |= (~GYRO_FCHOICE_BYTE) & 0x03;   // set fchoice_b [1:0] only
     IMU_write(GYRO_CONFIG, regval);
 }
 
