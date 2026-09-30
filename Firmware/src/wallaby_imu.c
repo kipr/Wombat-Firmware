@@ -258,8 +258,10 @@ void setupIMU()
     setup_gyro();
     setup_accel();
 
-    delay_us(200); // necessary wait before setting up the AK8963 (magnetometer)
-    setup_magnetometer();
+    // Don't start the AK8963 magnetometer: in continuous-measurement mode it
+    // shifts the accelerometer's Z reading by about +12 counts at +/-2 g (1.2%).
+    // H_RESET doesn't stop it; after firmware that started it, only a power
+    // cycle does.
 
     delay_us(200);
 }
