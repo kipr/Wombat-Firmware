@@ -88,6 +88,7 @@
 #define REG_RW_MOT_MODES   58  //   Normal PWM, MTP, MAV, MRP, 2 bits per motor
 #define REG_RW_MOT_DIRS    59  //   IDLE, FORWARD, REVERSE, BREAK, 2 bits per motor
 #define REG_RW_MOT_DONE    60  //   4 lowest bit used:   0000 (chan0) (chan1) (chan2) (chan3)
+                               //   high 4 bits: count of rejected SPI packets, mod 16 (read-only)
 #define REG_RW_MOT_SRV_ALLSTOP 61 //  2nd lowest bit is motor all stop, lowest bit is servo allstop
 
 // 16 bit signed speed goals

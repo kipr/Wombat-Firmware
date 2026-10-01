@@ -97,8 +97,11 @@ This is the core abstraction, and the place to start reading.
   (first byte `'J'`, last readable byte `'S'`, protocol byte equal to
   `WALLABY_SPI_VERSION`) and applies the host's `(address, value)` writes to
   `aTxBuffer`. It ignores writes to the start and version registers or past
-  `REG_ALL_COUNT`, and applies at most 42 writes per packet, the most that fit
-  before the end byte. Some writes set `adc_dirty` or `dig_dirty`, which the
+  `REG_ALL_COUNT`. A count above 42 (the most pairs that fit before the end
+  byte) is corrupt: the real count is recovered from where the host's zero
+  padding starts, and a packet with no padding is dropped. Packets with a
+  corrupt count or a skipped write are counted, mod 16, in the high nibble of
+  `REG_RW_MOT_DONE`. Some writes set `adc_dirty` or `dig_dirty`, which the
   main loop picks up to reconfigure peripherals.
 - Multi-byte values are split into `_H`/`_L` (or `_B3`…`_B0`) registers, most
   significant byte first. Drivers read goals and PWM values from `aTxBuffer` and
