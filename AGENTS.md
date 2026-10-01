@@ -96,7 +96,9 @@ This is the core abstraction, and the place to start reading.
   `handle_dma()` (called from `DMA1_Stream3/4_IRQHandler`) checks the framing
   (first byte `'J'`, last readable byte `'S'`, protocol byte equal to
   `WALLABY_SPI_VERSION`) and applies the host's `(address, value)` writes to
-  `aTxBuffer`. Some writes set `adc_dirty` or `dig_dirty`, which the main loop
+  `aTxBuffer`. It ignores writes to the start and version registers or past
+  `REG_ALL_COUNT`, and drops all writes from a packet whose count byte claims
+  more than fit. Some writes set `adc_dirty` or `dig_dirty`, which the main loop
   picks up to reconfigure peripherals.
 - Multi-byte values are split into `_H`/`_L` (or `_B3`…`_B0`) registers, most
   significant byte first. Drivers read goals and PWM values from `aTxBuffer` and
