@@ -67,7 +67,8 @@
  */
 #define READ_FLAG 0b10000000
 
-float magn_scale_factors[3] = {0.0f, 0.0f, 0.0f};
+// AK8963 factory sensitivity adjustment, read from its Fuse ROM at setup
+float magn_scale_factors[3] = {1.0f, 1.0f, 1.0f};
 
 /**
  * @brief Write a byte to the given address. This doesn't
@@ -125,17 +126,21 @@ void enter_magnetometer_read_mode()
 }
 
 /**
- * @brief Use this in write mode to write
- * to the DO
+ * @brief Write one AK8963 register through I2C slave 0 and wait for the
+ * MPU's I2C master to perform the write. It only runs once per sample
+ * (5 ms at 200 Hz), so this takes about 10 ms.
  *
  * @param ak8963_addr
  * @param val
- * @return uint8_t
  */
-uint8_t magnetometer_write(uint8_t ak8963_addr, uint8_t val)
+void magnetometer_write(uint8_t ak8963_addr, uint8_t val)
 {
+    enter_magnetometer_write_mode();
     IMU_write(I2C_SLV0_REG, ak8963_addr);
-    return IMU_write(I2C_SLV0_DO, val);
+    IMU_write(I2C_SLV0_DO, val);
+    IMU_write(I2C_SLV0_CTRL, READ_FLAG | 1); // bit 7 enables slave 0; write 1 byte
+    delay_us(10000);
+    IMU_write(I2C_SLV0_CTRL, 0x00);
 }
 
 /**
@@ -222,31 +227,34 @@ void setup_magnetometer()
     IMU_write(USER_CTRL, 0b00100000);    // enable I2C master mode
     IMU_write(I2C_MST_CTRL, 0b00001101); // set I2C Master clock to 400kHz
 
-    // put AK8963 in I2C slv 0
-    enter_magnetometer_write_mode();
-
     // setup AK8963
     magnetometer_write(AK8963_CNTL, 0x00); // turn off magnetometer
-    delay_us(10);
     magnetometer_write(AK8963_CNTL, 0x0F); // enter Fuse ROM access mode
-    delay_us(10);
 
-    // extract factory calibration
+    // extract factory calibration; give the I2C master time to do the read
     uint8_t raw_data[3];
-    magnetometer_read_bytes(AK8963_ASAX, 3, (uint8_t *)raw_data);
-    for (uint8_t i = 0; i < 3; ++i)
+    enter_magnetometer_read_mode();
+    IMU_write(I2C_SLV0_REG, AK8963_ASAX);
+    IMU_write(I2C_SLV0_CTRL, READ_FLAG | 3);
+    delay_us(10000);
+    read_bytes(EXT_SENS_DATA_00, 3, raw_data);
+    IMU_write(I2C_SLV0_CTRL, 0x00);
+    // all 0x00 or all 0xFF means the AK8963 didn't answer: keep 1.0
+    uint8_t all_same = raw_data[0] == raw_data[1] && raw_data[1] == raw_data[2];
+    if (!(all_same && (raw_data[0] == 0x00 || raw_data[0] == 0xFF)))
     {
-        magn_scale_factors[i] = (float)(raw_data[0] - 128) / 256. + 1.;
+        for (uint8_t i = 0; i < 3; ++i)
+        {
+            // AK8963 datasheet: Hadj = H * ((ASA - 128) * 0.5 / 128 + 1)
+            magn_scale_factors[i] = (float)(raw_data[i] - 128) / 256.0f + 1.0f;
+        }
     }
 
     // power down magnetometer again
-    enter_magnetometer_write_mode();
     magnetometer_write(AK8963_CNTL, 0x00); // write the power-down byte
-    delay_us(10);
 
     // go into continuous measurement @ 100Hz and use 16 bit values
     magnetometer_write(AK8963_CNTL, MAGNETOMETER_CONFIG_BYTE);
-    delay_us(10);
 }
 
 void setupIMU()
@@ -297,12 +305,16 @@ void readIMU(uint32_t count)
         // ignore reading from data status 1 since, during testing, it didn't respond
         magnetometer_read_bytes(AK8963_XOUT_L, 7, buff); // read magneto data and data status 2
 
-        // data is in little endian
-        aTxBuffer[REG_RW_MAG_X_H] = buff[1];
-        aTxBuffer[REG_RW_MAG_X_L] = buff[0];
-        aTxBuffer[REG_RW_MAG_Y_H] = buff[3];
-        aTxBuffer[REG_RW_MAG_Y_L] = buff[2];
-        aTxBuffer[REG_RW_MAG_Z_H] = buff[5];
-        aTxBuffer[REG_RW_MAG_Z_L] = buff[4];
+        // data is in little endian; publish it with the factory sensitivity
+        // adjustment applied (X_H, X_L, Y_H, ... are consecutive registers)
+        for (uint8_t i = 0; i < 3; ++i)
+        {
+            int16_t raw = (int16_t)((buff[2 * i + 1] << 8) | buff[2 * i]);
+            float v = raw * magn_scale_factors[i];
+            v += v < 0 ? -0.5f : 0.5f;
+            int16_t adj = v >= 32767.0f ? 32767 : (v <= -32768.0f ? -32768 : (int16_t)v);
+            aTxBuffer[REG_RW_MAG_X_H + 2 * i] = (uint16_t)adj >> 8;
+            aTxBuffer[REG_RW_MAG_X_L + 2 * i] = (uint16_t)adj & 0xFF;
+        }
     }
 }
