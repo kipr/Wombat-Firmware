@@ -44,6 +44,7 @@ extern __IO uint8_t aRxBuffer [REG_ALL_COUNT];
 
 extern volatile uint8_t adc_dirty;
 extern volatile uint8_t dig_dirty;
+extern volatile uint8_t spi_resync;
 
 extern volatile uint32_t usCount;
 

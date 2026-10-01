@@ -7,8 +7,6 @@
 void SPI_DMA_Config(unsigned int buffer_len)
 {
     GPIO_InitTypeDef GPIO_InitStructure;
-    DMA_InitTypeDef DMA_InitStructure;
-    SPI_InitTypeDef SPI_InitStructure;
 
 
     // SPI GPIO Configuration --------------------------------------------------
@@ -60,6 +58,17 @@ void SPI_DMA_Config(unsigned int buffer_len)
     //GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
     //GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN;
     GPIO_Init(SPI2_CS0_PORT, &GPIO_InitStructure);
+
+    spi2_dma_init(buffer_len);
+}
+
+
+// Doesn't touch GPIO, so spi2_dma_resync() can call it at runtime without
+// resetting the other pins on port B.
+void spi2_dma_init(unsigned int buffer_len)
+{
+    DMA_InitTypeDef DMA_InitStructure;
+    SPI_InitTypeDef SPI_InitStructure;
 
 
     // SPI configuration -------------------------------------------------------
@@ -119,6 +128,53 @@ void SPI_DMA_Config(unsigned int buffer_len)
 
     SPI_InitStructure.SPI_Mode = SPI_Mode_Slave;
     SPI_Init(SPI2, &SPI_InitStructure);
+}
+
+
+void spi2_dma_start()
+{
+    DMA_ITConfig(DMA1_Stream3, DMA_IT_TC, ENABLE);
+    DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, ENABLE);
+
+    // Enable DMA SPI TX Stream
+    DMA_Cmd(DMA1_Stream4,ENABLE);
+
+    // Enable DMA SPI RX Stream
+    DMA_Cmd(DMA1_Stream3,ENABLE);
+
+    // Enable SPI DMA TX Requsts
+    SPI_I2S_DMACmd(SPI2, SPI_I2S_DMAReq_Tx, ENABLE);
+
+    // Enable SPI DMA RX Requsts
+    SPI_I2S_DMACmd(SPI2, SPI_I2S_DMAReq_Rx, ENABLE);
+
+    // Enable the SPI peripheral
+    SPI_Cmd(SPI2, ENABLE);
+}
+
+
+// The circular DMA never realigns with the host's frames by itself: after one
+// transfer of the wrong length, or a glitch on SCK or chip select, every later
+// frame is offset until SPI2 and both streams are reset.
+void spi2_dma_resync()
+{
+    // Only reset between transfers (chip select is active low). If the host
+    // starts one mid-reset, that frame fails framing and sets spi_resync again.
+    if ((SPI2_CS0_PORT->IDR & SPI2_CS0) == 0) return;
+
+    // Disabling a stream only pauses it at its current count, and its config
+    // registers can't be rewritten until it has actually stopped. Interrupts
+    // stay off so handle_dma() can't run against a half-reset link.
+    __disable_irq();
+    DMA_Cmd(DMA1_Stream4, DISABLE);
+    DMA_Cmd(DMA1_Stream3, DISABLE);
+    while (DMA_GetCmdStatus(DMA1_Stream4) != DISABLE || DMA_GetCmdStatus(DMA1_Stream3) != DISABLE);
+
+    // Also resets SPI2 through RCC, which drops any partial byte.
+    spi2_dma_init(BUFFERSIZE);
+    spi2_dma_start();
+    spi_resync = 0;
+    __enable_irq();
 }
 
 
@@ -258,6 +314,11 @@ void handle_dma()
             {
                debug_printf("SPI protocol version mismatch\n");
             }
+
+            // A wrong start or end byte means the DMA has lost the frame
+            // boundary. A wrong version alone is a protocol mismatch, which a
+            // reset can't fix.
+            if (aRxBuffer[0] != 'J' || aRxBuffer[REG_READABLE_COUNT-1] != 'S') spi_resync = 1;
         }
         // Clear DMA Transfer Complete Flags so we can notice when a transfer happens again
         DMA_ClearFlag(DMA1_Stream4,DMA_FLAG_TCIF4); // tx

@@ -1,6 +1,9 @@
 #include "stm32f4xx.h"
 
 void SPI_DMA_Config(unsigned int buffer_len);
+void spi2_dma_init(unsigned int buffer_len);
+void spi2_dma_start();
+void spi2_dma_resync();
 
 void spi2_dma_cleanup();
 

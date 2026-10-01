@@ -100,6 +100,10 @@ This is the core abstraction, and the place to start reading.
   `REG_ALL_COUNT`, and applies at most 42 writes per packet, the most that fit
   before the end byte. Some writes set `adc_dirty` or `dig_dirty`, which the
   main loop picks up to reconfigure peripherals.
+- The circular DMA can't realign with the host's frames on its own. A frame
+  with a bad start or end byte sets `spi_resync`, and the main loop then calls
+  `spi2_dma_resync()`, which resets SPI2 and both DMA streams once chip select
+  is high, so the link recovers within a transfer or two.
 - Multi-byte values are split into `_H`/`_L` (or `_B3`…`_B0`) registers, most
   significant byte first. Drivers read goals and PWM values from `aTxBuffer` and
   write sensor results back into it.
