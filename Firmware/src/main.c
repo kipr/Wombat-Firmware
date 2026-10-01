@@ -110,10 +110,7 @@ int main()
                 update_dig_pin_configs();
             }
 
-            if (spi_resync)
-            {
-                spi2_dma_resync();
-            }
+            spi2_dma_check_sync();
 
             uint32_t sensor_update_time = usCount - before;
             const uint16_t us_delay_needed = 700;

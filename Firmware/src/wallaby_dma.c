@@ -63,8 +63,8 @@ void SPI_DMA_Config(unsigned int buffer_len)
 }
 
 
-// Doesn't touch GPIO, so spi2_dma_resync() can call it at runtime without
-// resetting the other pins on port B.
+// Doesn't reconfigure any pins, so spi2_dma_check_sync() can call it at runtime
+// without resetting the other pins on port B.
 void spi2_dma_init(unsigned int buffer_len)
 {
     DMA_InitTypeDef DMA_InitStructure;
@@ -135,45 +135,76 @@ void spi2_dma_start()
 {
     DMA_ITConfig(DMA1_Stream3, DMA_IT_TC, ENABLE);
     DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, ENABLE);
-
-    // Enable DMA SPI TX Stream
-    DMA_Cmd(DMA1_Stream4,ENABLE);
-
-    // Enable DMA SPI RX Stream
-    DMA_Cmd(DMA1_Stream3,ENABLE);
-
-    // Enable SPI DMA TX Requsts
+    DMA_Cmd(DMA1_Stream4, ENABLE);
+    DMA_Cmd(DMA1_Stream3, ENABLE);
     SPI_I2S_DMACmd(SPI2, SPI_I2S_DMAReq_Tx, ENABLE);
-
-    // Enable SPI DMA RX Requsts
     SPI_I2S_DMACmd(SPI2, SPI_I2S_DMAReq_Rx, ENABLE);
-
-    // Enable the SPI peripheral
+    // Last, so both streams are ready to service SPI2 from its first byte.
     SPI_Cmd(SPI2, ENABLE);
+}
+
+
+// Chip select is active low; high means no transfer is in progress.
+static uint8_t spi2_cs_high()
+{
+    return (SPI2_CS0_PORT->IDR & SPI2_CS0) != 0;
 }
 
 
 // The circular DMA never realigns with the host's frames by itself: after one
 // transfer of the wrong length, or a glitch on SCK or chip select, every later
-// frame is offset until SPI2 and both streams are reset.
-void spi2_dma_resync()
+// frame is offset until SPI2 and both streams are reset. Called once per main
+// loop pass.
+void spi2_dma_check_sync()
 {
-    // Only reset between transfers (chip select is active low). If the host
-    // starts one mid-reset, that frame fails framing and sets spi_resync again.
-    if ((SPI2_CS0_PORT->IDR & SPI2_CS0) == 0) return;
+    // Between transfers, an aligned RX stream has just reloaded its count to a
+    // full frame, so any other count means the last transfer had the wrong
+    // length. The last byte can still be on its way to memory just after chip
+    // select rises, so a mismatch is confirmed a moment later. handle_dma()
+    // sets spi_resync for slips the count can't see, like an extra clock edge
+    // that shifts bits without changing the byte count.
+    if (spi2_cs_high() && DMA_GetCurrDataCounter(DMA1_Stream3) != BUFFERSIZE)
+    {
+        delay_us(2);
+        if (spi2_cs_high() && DMA_GetCurrDataCounter(DMA1_Stream3) != BUFFERSIZE) spi_resync = 1;
+    }
+
+    // An overrun stops reception until SPI2 is reset.
+    if (SPI_I2S_GetFlagStatus(SPI2, SPI_I2S_FLAG_OVR) != RESET) spi_resync = 1;
+
+    if (!spi_resync) return;
+
+    // A transfer lasts about 45 us, so wait one out rather than retrying a whole
+    // main-loop pass later, which can leave the link down for milliseconds
+    // under continuous traffic.
+    uint32_t start = usCount;
+    while (!spi2_cs_high() && usCount - start < 60);
 
     // Disabling a stream only pauses it at its current count, and its config
     // registers can't be rewritten until it has actually stopped. Interrupts
     // stay off so handle_dma() can't run against a half-reset link.
     __disable_irq();
-    DMA_Cmd(DMA1_Stream4, DISABLE);
-    DMA_Cmd(DMA1_Stream3, DISABLE);
-    while (DMA_GetCmdStatus(DMA1_Stream4) != DISABLE || DMA_GetCmdStatus(DMA1_Stream3) != DISABLE);
+    if (spi2_cs_high())
+    {
+        DMA_Cmd(DMA1_Stream4, DISABLE);
+        DMA_Cmd(DMA1_Stream3, DISABLE);
 
-    // Also resets SPI2 through RCC, which drops any partial byte.
-    spi2_dma_init(BUFFERSIZE);
-    spi2_dma_start();
-    spi_resync = 0;
+        // A stream stops as soon as its current single transfer finishes. The
+        // bound only guards against one that doesn't; the next pass retries.
+        uint8_t tries = 100;
+        while ((DMA_GetCmdStatus(DMA1_Stream4) != DISABLE || DMA_GetCmdStatus(DMA1_Stream3) != DISABLE) && --tries);
+
+        if (tries)
+        {
+            // Also resets SPI2 through RCC, which drops any partial byte.
+            spi2_dma_init(BUFFERSIZE);
+            spi2_dma_start();
+
+            // If the host started a transfer during the reset, SPI2 caught only
+            // its tail, so reset again once that transfer ends.
+            spi_resync = !spi2_cs_high();
+        }
+    }
     __enable_irq();
 }
 
@@ -259,7 +290,8 @@ void handle_dma()
     if ( (DMA_GetFlagStatus(DMA1_Stream4,DMA_FLAG_TCIF4)!=RESET) &&  (DMA_GetFlagStatus(DMA1_Stream3,DMA_FLAG_TCIF3)!=RESET))
     {
         // TODO: make this interrupt-based
-        if (aRxBuffer[0] == 'J'  && aRxBuffer[REG_READABLE_COUNT-1] == 'S' && aRxBuffer[1] == WALLABY_SPI_VERSION)
+        const uint8_t framed = aRxBuffer[0] == 'J' && aRxBuffer[REG_READABLE_COUNT-1] == 'S';
+        if (framed && aRxBuffer[1] == WALLABY_SPI_VERSION)
         {
             expected += 1;
             //if (aRxBuffer[2] != expected) debug_printf("Missed packet(s) got ID %d expected %d\n", aRxBuffer[2], expected);
@@ -318,7 +350,7 @@ void handle_dma()
             // A wrong start or end byte means the DMA has lost the frame
             // boundary. A wrong version alone is a protocol mismatch, which a
             // reset can't fix.
-            if (aRxBuffer[0] != 'J' || aRxBuffer[REG_READABLE_COUNT-1] != 'S') spi_resync = 1;
+            if (!framed) spi_resync = 1;
         }
         // Clear DMA Transfer Complete Flags so we can notice when a transfer happens again
         DMA_ClearFlag(DMA1_Stream4,DMA_FLAG_TCIF4); // tx
