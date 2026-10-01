@@ -258,18 +258,23 @@ void setupIMU()
     setup_gyro();
     setup_accel();
 
-    // Don't start the AK8963 magnetometer: in continuous-measurement mode it
-    // shifts the accelerometer's Z reading by about +12 counts at +/-2 g (1.2%).
-    // H_RESET doesn't stop it; after firmware that started it, only a power
-    // cycle does.
+    delay_us(200); // necessary wait before setting up the AK8963 (magnetometer)
+    setup_magnetometer();
 
     delay_us(200);
 }
 
 void readIMU(uint32_t count)
 {
-    const uint8_t accel_gyro_update_mod = 10; // at about 200 hz
-    const uint8_t magneto_update_mod = 20;    // at about 100 hz
+    // main() runs about 1090 passes per second
+    const uint8_t accel_gyro_update_mod = 10; // at about 110 hz
+    const uint8_t magneto_update_mod = 20;    // at about 55 hz
+    // The magnetometer read (~355 us) plus the accel/gyro read (~340 us) and
+    // adc_update() (~165 us) would overrun main()'s 700 us sensor window, so
+    // the magnetometer gets a pass of its own: pass 15 of every 20 never reads
+    // accel/gyro (count % 10 != 0) and is not a back-EMF pass in main()
+    // (count % 4 != 1).
+    const uint8_t magneto_update_phase = 15;
 
     if (count % accel_gyro_update_mod == 0)
     {
@@ -285,7 +290,7 @@ void readIMU(uint32_t count)
         // ---------- gyrometer ----------
         read_bytes(GYRO_XOUT_H, 6, ((uint8_t *)aTxBuffer) + REG_RW_GYRO_X_H);
     }
-    if (count % magneto_update_mod == 0)
+    if (count % magneto_update_mod == magneto_update_phase)
     {
         // ---------- magnetometer ----------
         uint8_t buff[7];
