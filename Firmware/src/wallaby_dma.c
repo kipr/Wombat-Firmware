@@ -210,6 +210,11 @@ void handle_dma()
 
             // handle recently compled DMA transfer
             uint8_t num_regs = aRxBuffer[3];
+            // (address, value) pairs run from byte 4 up to the trailing 'S', so a
+            // larger count is corrupt. Clamp rather than drop the packet: libwallaby
+            // zero-pads, and the address check below skips those (0, 0) pairs.
+            const uint8_t max_regs = (REG_READABLE_COUNT - 1 - 4) / 2;
+            if (num_regs > max_regs) num_regs = max_regs;
             uint8_t j;
             if (num_regs != 0)
             {
@@ -223,6 +228,10 @@ void handle_dma()
                 uint8_t address = aRxBuffer[4+j];
                 uint8_t value = aRxBuffer[4+j+1];
 
+                // Registers below REG_RW_DIG_IN_H are the read-only start byte and
+                // firmware version. libwallaby checks the start byte on every transfer.
+                if (address < REG_RW_DIG_IN_H || address >= REG_ALL_COUNT) continue;
+
                 // handle motors modes clearing done bits
                 // TODO: cleanup
                 if (address == REG_RW_MOT_MODES)
@@ -234,8 +243,6 @@ void handle_dma()
                 }
 
                 aTxBuffer[address] = value;
-                
-                // TODO: register/value checks before assignment
 
                 if (address == REG_RW_ADC_PE) adc_dirty = 1;
 
