@@ -93,7 +93,8 @@ This is the core abstraction, and the place to start reading.
   interface to the Pi. Register indices are `#define`d in
   `Firmware/include/wallaby_spi_r4.h`, which `wallaby.h` includes.
 - SPI2 runs as a circular DMA slave (`wallaby_dma.c`). After each transfer,
-  `handle_dma()` (called from `DMA1_Stream3/4_IRQHandler`) checks the framing
+  `handle_dma()` (called from `DMA1_Stream3_IRQHandler` when the RX stream
+  completes a frame; the TX stream's interrupt stays disabled) checks the framing
   (first byte `'J'`, last readable byte `'S'`, protocol byte equal to
   `WALLABY_SPI_VERSION`) and applies the host's `(address, value)` writes to
   `aTxBuffer`. It ignores writes to the start and version registers or past

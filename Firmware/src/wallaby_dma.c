@@ -133,8 +133,9 @@ void spi2_dma_init(unsigned int buffer_len)
 
 void spi2_dma_start()
 {
+    // Only the RX stream interrupts. The TX stream completes a frame about two
+    // bytes before RX does, and its interrupt would stay pending until then.
     DMA_ITConfig(DMA1_Stream3, DMA_IT_TC, ENABLE);
-    DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, ENABLE);
     DMA_Cmd(DMA1_Stream4, ENABLE);
     DMA_Cmd(DMA1_Stream3, ENABLE);
     SPI_I2S_DMACmd(SPI2, SPI_I2S_DMAReq_Tx, ENABLE);
@@ -287,7 +288,11 @@ void handle_dma()
 {
     static uint8_t expected = 0;
 
-    if ( (DMA_GetFlagStatus(DMA1_Stream4,DMA_FLAG_TCIF4)!=RESET) &&  (DMA_GetFlagStatus(DMA1_Stream3,DMA_FLAG_TCIF3)!=RESET))
+    // A frame has arrived once the RX stream completes. Waiting for the TX flag
+    // too is what let a transfer one byte short of a frame hang the firmware:
+    // TX had completed, RX hadn't, and the TX interrupt re-entered until the
+    // host's next transfer.
+    if (DMA_GetFlagStatus(DMA1_Stream3,DMA_FLAG_TCIF3)!=RESET)
     {
         // TODO: make this interrupt-based
         const uint8_t framed = aRxBuffer[0] == 'J' && aRxBuffer[REG_READABLE_COUNT-1] == 'S';
