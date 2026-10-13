@@ -80,7 +80,7 @@ and run `sudo ./wallaby_flash` from that directory. The flashing tools live in
 
 A single `while (1)` superloop with a fixed time budget for consistent PID
 timing. Each pass spends a 700 µs window on sensor updates (digital pins,
-battery, IMU) and sleeps for whatever's left. Every 4th pass, the motors idle
+battery, IMU) and the servo power check, and sleeps for whatever's left. Every 4th pass, the motors idle
 in that window so back-EMF can be sampled, then PID and motor updates run; the
 other passes sleep 222 µs instead, keeping passes at about 922 µs. Anything
 added to the loop has to fit this budget.
@@ -138,7 +138,7 @@ One file per subsystem, each with a header in `Firmware/include/`: `init`
 | SPI3 | MPU-9250 IMU (master) |
 | TIM1, TIM8 | Motor PWM |
 | TIM3, TIM9 | Servo pulses |
-| PE10 (`SRV_DISABLE`) | Servo power: open-drain to the 6 V regulator's enable, cut when all four servos are disabled |
+| PE10 (`SRV_DISABLE`) | Servo power: open-drain to the 6 V regulator's enable, cut 40 ms after all four servos are disabled |
 | ADC1–3 | Analog ports, motor back-EMF, battery (pin mapping in `wallaby_r2.h`) |
 | SysTick | 1 µs tick behind `usCount` and `delay_us()` |
 

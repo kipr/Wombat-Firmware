@@ -37,6 +37,24 @@ void init180MHz()
 
 void init()
 {
+    // PE10 drives the enable of the 6 V servo regulator (U72), which R52 pulls up
+    // to the battery, so it is open-drain: low turns servo power off, released
+    // turns it on. Servos start disabled, so power starts off. The rail is on
+    // from reset until this runs, so it comes before init180MHz() waits on the
+    // crystal.
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
+    {
+        SRV_DISABLE_PORT->BSRRH |= SRV_DISABLE;
+
+        GPIO_InitTypeDef GPIO_InitStructure;
+        GPIO_InitStructure.GPIO_Pin = SRV_DISABLE;
+        GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+        GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
+        GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+        GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+        GPIO_Init(SRV_DISABLE_PORT, &GPIO_InitStructure);
+    }
+
     init180MHz(); // switch over to 180 MHz via the external 24 MHz crystal and a PLL
 
     initSystick(); // get a wallclock started, ticking at 1ms
@@ -235,22 +253,7 @@ void init()
         
         GPIO_PinAFConfig(SRV3_PWM_PORT, SRV3_PWM_PinSource, GPIO_AF_TIM9);
     }
-
-    // PE10 drives the enable of the 6 V servo regulator (U72), which R52 pulls up
-    // to the battery, so it is open-drain: low turns servo power off, released
-    // turns it on. Servos start disabled, so power starts off.
-    {
-        SRV_DISABLE_PORT->BSRRH |= SRV_DISABLE;
-
-        GPIO_InitTypeDef GPIO_InitStructure;
-        GPIO_InitStructure.GPIO_Pin = SRV_DISABLE;
-        GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-        GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
-        GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-        GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-        GPIO_Init(SRV_DISABLE_PORT, &GPIO_InitStructure);
-    }
-
+    
     TIM1_Configuration(); // motors 0,1,2
 
     // TODO move tim1 interrupt setup for motor control
