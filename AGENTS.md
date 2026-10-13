@@ -138,6 +138,7 @@ One file per subsystem, each with a header in `Firmware/include/`: `init`
 | SPI3 | MPU-9250 IMU (master) |
 | TIM1, TIM8 | Motor PWM |
 | TIM3, TIM9 | Servo pulses |
+| PE10 (`SRV_DISABLE`) | Servo power: open-drain to the 6 V regulator's enable, cut when all four servos are disabled |
 | ADC1–3 | Analog ports, motor back-EMF, battery (pin mapping in `wallaby_r2.h`) |
 | SysTick | 1 µs tick behind `usCount` and `delay_us()` |
 

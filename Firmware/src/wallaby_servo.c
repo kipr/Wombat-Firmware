@@ -125,3 +125,18 @@ void TIM1_BRK_TIM9_IRQHandler(void)
         TIM_SetCompare2(TIM9, servo2_cmd);
     }
 }
+
+void update_servo_power(void)
+{
+    // Digital servos hold position with no pulses and only go limp without power.
+    // One regulator (U72) feeds all four ports, so power can only be cut once
+    // every servo is disabled.
+    if ((aTxBuffer[REG_RW_MOT_SRV_ALLSTOP] & 0b11110000) == 0b11110000)
+    {
+        SRV_DISABLE_PORT->BSRRH |= SRV_DISABLE; // power off
+    }
+    else
+    {
+        SRV_DISABLE_PORT->BSRRL |= SRV_DISABLE; // released, power on
+    }
+}
