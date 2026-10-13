@@ -110,6 +110,8 @@ int main()
                 update_dig_pin_configs();
             }
 
+            spi2_dma_check_sync();
+
             uint32_t sensor_update_time = usCount - before;
             const uint16_t us_delay_needed = 700;
             const uint8_t got_time_to_burn = sensor_update_time < us_delay_needed;

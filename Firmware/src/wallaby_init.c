@@ -72,15 +72,6 @@ void init()
     //SPI_InitStructure.SPI_Mode = SPI_Mode_Slave;
     //SPI_Init(SPI2, &SPI_InitStructure);
 
-    DMA_ITConfig(DMA1_Stream3, DMA_IT_TC, ENABLE);
-    DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, ENABLE);
-
-    // Enable DMA SPI TX Stream 
-    DMA_Cmd(DMA1_Stream4,ENABLE);
-
-    // Enable DMA SPI RX Stream 
-    DMA_Cmd(DMA1_Stream3,ENABLE); 
-
     {
         NVIC_InitTypeDef NVIC_InitStructure;
         // Enable the TIM1 gloabal Interrupt
@@ -100,15 +91,7 @@ void init()
         NVIC_Init(&NVIC_InitStructure);
     }
 
-    // Enable SPI DMA TX Requsts 
-    SPI_I2S_DMACmd(SPI2, SPI_I2S_DMAReq_Tx, ENABLE);
-
-    // Enable SPI DMA RX Requsts 
-    SPI_I2S_DMACmd(SPI2, SPI_I2S_DMAReq_Rx, ENABLE);
-
-    //debug_printf("enable spi\n");
-    // Enable the SPI peripheral
-    SPI_Cmd(SPI2, ENABLE);
+    spi2_dma_start();
 
     // motor 0 
     configMotorPin(MOT0_DIR1, MOT0_DIR1_PORT);
