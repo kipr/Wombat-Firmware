@@ -106,6 +106,8 @@ int main()
                 update_dig_pin_configs();
             }
 
+            update_servo_power();
+
             uint32_t sensor_update_time = usCount - before;
             const uint16_t us_delay_needed = 700;
             const uint8_t got_time_to_burn = sensor_update_time < us_delay_needed;

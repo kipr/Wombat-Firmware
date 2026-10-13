@@ -13,4 +13,6 @@ void TIM3_IRQHandler(void);
 
 void TIM1_BRK_TIM9_IRQHandler(void);
 
+void update_servo_power(void);
+
 #endif
