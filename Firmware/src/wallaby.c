@@ -12,6 +12,7 @@ volatile uint32_t usCount;
 
 volatile uint8_t adc_dirty;
 volatile uint8_t dig_dirty;
+volatile uint8_t spi_resync;
 
 #ifndef USE_CROSS_STUDIO_DEBUG
     int debug_printf(const char *format, ...){}
