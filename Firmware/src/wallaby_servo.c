@@ -125,3 +125,35 @@ void TIM1_BRK_TIM9_IRQHandler(void)
         TIM_SetCompare2(TIM9, servo2_cmd);
     }
 }
+
+void update_servo_power(void)
+{
+    // Digital servos hold position with no pulses and only go limp without power.
+    // One regulator (U72) feeds all four ports, so power can only be cut once
+    // every servo is disabled.
+    static uint8_t all_disabled = 0;
+    static uint32_t all_disabled_since;
+
+    if ((aTxBuffer[REG_RW_MOT_SRV_ALLSTOP] & 0b11110000) == 0b11110000)
+    {
+        if (!all_disabled)
+        {
+            all_disabled = 1;
+            all_disabled_since = usCount;
+        }
+
+        // The timer ISRs zero a port's pulse at its next 20 ms update, and compare
+        // preload applies that one period later, so pulses can continue for up to
+        // 40 ms. Cutting power before then would drive the last pulses into an
+        // unpowered servo.
+        if (usCount - all_disabled_since >= 40000)
+        {
+            SRV_DISABLE_PORT->BSRRH |= SRV_DISABLE; // power off
+        }
+    }
+    else
+    {
+        all_disabled = 0;
+        SRV_DISABLE_PORT->BSRRL |= SRV_DISABLE; // released, power on
+    }
+}
