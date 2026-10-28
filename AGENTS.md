@@ -93,7 +93,8 @@ This is the core abstraction, and the place to start reading.
   interface to the Pi. Register indices are `#define`d in
   `Firmware/include/wallaby_spi_r4.h`, which `wallaby.h` includes.
 - SPI2 runs as a circular DMA slave (`wallaby_dma.c`). After each transfer,
-  `handle_dma()` (called from `DMA1_Stream3/4_IRQHandler`) checks the framing
+  `handle_dma()` (called from `DMA1_Stream3_IRQHandler` when the RX stream
+  completes a frame; the TX stream's interrupt stays disabled) checks the framing
   (first byte `'J'`, last readable byte `'S'`, protocol byte equal to
   `WALLABY_SPI_VERSION`) and applies the host's `(address, value)` writes to
   `aTxBuffer`. It ignores writes to the start and version registers or past
@@ -103,6 +104,13 @@ This is the core abstraction, and the place to start reading.
   corrupt count or a skipped write are counted, mod 16, in the high nibble of
   `REG_RW_MOT_DONE`. Some writes set `adc_dirty` or `dig_dirty`, which the
   main loop picks up to reconfigure peripherals.
+- The circular DMA can't realign with the host's frames on its own. Each main
+  loop pass calls `spi2_dma_check_sync()`, which treats the link as slipped if
+  the RX stream's count isn't a full frame between transfers, if SPI2 has
+  overrun, or if `handle_dma()` saw a bad start or end byte (`spi_resync`). It
+  then waits up to 60 µs for chip select to go high and resets SPI2 and both
+  DMA streams. Under continuous host traffic, recovery takes about half a
+  millisecond on average and a few transfers are lost first.
 - Multi-byte values are split into `_H`/`_L` (or `_B3`…`_B0`) registers, most
   significant byte first. Drivers read goals and PWM values from `aTxBuffer` and
   write sensor results back into it.

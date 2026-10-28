@@ -106,6 +106,8 @@ int main()
                 update_dig_pin_configs();
             }
 
+            spi2_dma_check_sync();
+
             update_servo_power();
 
             uint32_t sensor_update_time = usCount - before;
